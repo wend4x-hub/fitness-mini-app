@@ -120,6 +120,7 @@
     <button type="button" class="opt" data-goal="0.1" aria-pressed="false">Набор массы<small>С небольшим профицитом</small></button>
   </div>
 
+  <div id="form-err" class="warn hidden" style="margin-bottom:12px"></div>
   <button class="cta" id="calc-btn">Рассчитать</button>
   <p class="note">Расчёт по формуле Миффлина–Сан Жеора. Это ориентир, а не медицинское назначение.</p>
 </section>
@@ -155,6 +156,7 @@
   </div>
 
   <button class="cta" id="send-btn" style="margin-bottom:10px">Отправить расчёт тренеру</button>
+  <div id="send-status" class="warn hidden" style="margin:0 0 10px"></div>
   <button class="cta ghost" id="back-btn">Изменить данные</button>
   <p class="note">Не опускайтесь ниже расчётной калорийности самостоятельно: слишком большой дефицит замедляет обмен веществ и приводит к срывам. При хронических заболеваниях, беременности или приёме лекарств план нужно согласовать с врачом.</p>
 </section>
@@ -187,7 +189,8 @@ function bindOpts(attr, key, cast) {
 bindOpts('act', 'activity', parseFloat);
 bindOpts('goal', 'goal', parseFloat);
 
-function haptic() { tg?.HapticFeedback?.selectionChanged?.(); }
+function safeTg(fn) { try { fn(); } catch (e) {} }
+function haptic() { safeTg(() => tg?.HapticFeedback?.selectionChanged?.()); }
 
 /* ---------- расчёт ---------- */
 function calculate({ sex, age, height, weight, activity, goal }) {
@@ -272,6 +275,7 @@ const WEEK_PLAN = [
 let lastResult = null;
 
 document.getElementById('calc-btn').onclick = () => {
+  document.getElementById('form-err').classList.add('hidden');
   const age = +document.getElementById('age').value;
   const height = +document.getElementById('height').value;
   const weight = +document.getElementById('weight').value;
@@ -315,7 +319,7 @@ document.getElementById('calc-btn').onclick = () => {
   document.getElementById('form-screen').classList.add('hidden');
   document.getElementById('result-screen').classList.remove('hidden');
   window.scrollTo(0, 0);
-  tg?.HapticFeedback?.notificationOccurred?.('success');
+  safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
 };
 
 document.getElementById('back-btn').onclick = () => {
@@ -327,12 +331,21 @@ document.getElementById('back-btn').onclick = () => {
 // Отправка данных в бота — бот получит их в message.web_app_data
 document.getElementById('send-btn').onclick = () => {
   if (!lastResult) return;
-  if (!tg) return alertUser('Откройте приложение внутри Telegram');
-  tg.sendData(JSON.stringify(lastResult));
+  const status = document.getElementById('send-status');
+  try {
+    if (!tg || !tg.initData) throw new Error('not in telegram');
+    tg.sendData(JSON.stringify(lastResult));
+  } catch (e) {
+    status.textContent = 'Отправка данных работает только когда приложение открыто внутри Telegram.';
+    status.classList.remove('hidden');
+  }
 };
 
 function alertUser(msg) {
-  if (tg?.showAlert) tg.showAlert(msg); else alert(msg);
+  const box = document.getElementById('form-err');
+  box.textContent = msg;
+  box.classList.remove('hidden');
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 </script>
 </body>
