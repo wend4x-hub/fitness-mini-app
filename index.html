@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Калькулятор питания</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --text: var(--tg-theme-text-color, #16181c);
+    --hint: var(--tg-theme-hint-color, #8a8f98);
+    --card: var(--tg-theme-secondary-bg-color, #f3f4f6);
+    --accent: var(--tg-theme-button-color, #2f7cf6);
+    --accent-text: var(--tg-theme-button-text-color, #ffffff);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;padding:16px 16px 40px;
+    background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:16px;line-height:1.45;
+  }
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--hint);font-size:14px;margin:0 0 20px}
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  label{display:block;font-size:13px;color:var(--hint);margin-bottom:6px}
+  input[type=number]{
+    width:100%;padding:12px;border:none;border-radius:10px;
+    background:var(--bg);color:var(--text);font-size:17px;font-family:inherit;
+  }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .row{display:flex;gap:10px}
+  .row > div{flex:1}
+  .field{margin-bottom:14px}
+  .field:last-child{margin-bottom:0}
+  .seg{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:10px}
+  .seg button{
+    flex:1;padding:10px 4px;border:none;border-radius:8px;
+    background:transparent;color:var(--text);font-size:15px;font-family:inherit;cursor:pointer;
+  }
+  .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-text);font-weight:600}
+  .opt{
+    display:block;width:100%;text-align:left;padding:12px;margin-bottom:6px;
+    border:none;border-radius:10px;background:var(--bg);color:var(--text);
+    font-size:15px;font-family:inherit;cursor:pointer;
+  }
+  .opt:last-child{margin-bottom:0}
+  .opt small{display:block;color:var(--hint);font-size:12px;margin-top:2px}
+  .opt[aria-pressed="true"]{outline:2px solid var(--accent)}
+  .cta{
+    width:100%;padding:15px;border:none;border-radius:12px;
+    background:var(--accent);color:var(--accent-text);
+    font-size:17px;font-weight:600;font-family:inherit;cursor:pointer;
+  }
+  .cta.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .big{font-size:38px;font-weight:700;line-height:1.1;margin:2px 0}
+  .unit{font-size:15px;color:var(--hint);font-weight:400}
+  .stats{display:flex;gap:8px;margin-top:14px}
+  .stat{flex:1;background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+  .stat b{display:block;font-size:19px}
+  .stat span{font-size:11px;color:var(--hint)}
+  .meal{padding:12px 0;border-bottom:1px solid var(--bg)}
+  .meal:last-child{border-bottom:none;padding-bottom:0}
+  .meal-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .meal-head b{font-size:15px}
+  .meal-head span{font-size:13px;color:var(--hint)}
+  .meal p{margin:0;font-size:14px;color:var(--hint)}
+  .note{font-size:12px;color:var(--hint);margin-top:16px;line-height:1.5}
+  .hidden{display:none}
+  .warn{background:rgba(240,160,40,.14);border-radius:10px;padding:11px;font-size:13px;margin-top:12px}
+</style>
+</head>
+<body>
+
+<!-- ШАГ 1: ввод данных -->
+<section id="form-screen">
+  <h1>Расчёт питания</h1>
+  <p class="sub">Посчитаем норму калорий и составим меню</p>
+
+  <div class="card">
+    <div class="field">
+      <label>Пол</label>
+      <div class="seg" id="sex">
+        <button type="button" data-v="male" aria-pressed="true">Мужской</button>
+        <button type="button" data-v="female" aria-pressed="false">Женский</button>
+      </div>
+    </div>
+    <div class="row field">
+      <div>
+        <label>Возраст</label>
+        <input type="number" id="age" inputmode="numeric" placeholder="28">
+      </div>
+      <div>
+        <label>Рост, см</label>
+        <input type="number" id="height" inputmode="numeric" placeholder="178">
+      </div>
+      <div>
+        <label>Вес, кг</label>
+        <input type="number" id="weight" inputmode="decimal" placeholder="82">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Активность</label>
+    <button type="button" class="opt" data-act="1.2" aria-pressed="false">Минимальная<small>Сидячая работа, спорта нет</small></button>
+    <button type="button" class="opt" data-act="1.375" aria-pressed="true">Лёгкая<small>Тренировки 1–3 раза в неделю</small></button>
+    <button type="button" class="opt" data-act="1.55" aria-pressed="false">Средняя<small>Тренировки 3–5 раз в неделю</small></button>
+    <button type="button" class="opt" data-act="1.725" aria-pressed="false">Высокая<small>Тренировки 6–7 раз в неделю</small></button>
+    <button type="button" class="opt" data-act="1.9" aria-pressed="false">Очень высокая<small>Физический труд или две тренировки в день</small></button>
+  </div>
+
+  <div class="card">
+    <label>Цель</label>
+    <button type="button" class="opt" data-goal="-0.15" aria-pressed="true">Снижение веса<small>Плавный темп, около 0,5 кг в неделю</small></button>
+    <button type="button" class="opt" data-goal="0" aria-pressed="false">Удержание веса<small>Сохранить текущую форму</small></button>
+    <button type="button" class="opt" data-goal="0.1" aria-pressed="false">Набор массы<small>С небольшим профицитом</small></button>
+  </div>
+
+  <button class="cta" id="calc-btn">Рассчитать</button>
+  <p class="note">Расчёт по формуле Миффлина–Сан Жеора. Это ориентир, а не медицинское назначение.</p>
+</section>
+
+<!-- ШАГ 2: результат -->
+<section id="result-screen" class="hidden">
+  <h1>Ваша норма</h1>
+  <p class="sub" id="goal-label"></p>
+
+  <div class="card">
+    <label>Калорийность в день</label>
+    <div class="big"><span id="kcal">0</span> <span class="unit">ккал</span></div>
+    <div class="stats">
+      <div class="stat"><b id="prot">0</b><span>белки, г</span></div>
+      <div class="stat"><b id="fat">0</b><span>жиры, г</span></div>
+      <div class="stat"><b id="carb">0</b><span>углеводы, г</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="bmr">0</b><span>метаболизм покоя</span></div>
+      <div class="stat"><b id="tdee">0</b><span>расход с активностью</span></div>
+    </div>
+    <div id="floor-warn" class="warn hidden"></div>
+  </div>
+
+  <div class="card">
+    <label>Примерное меню на день</label>
+    <div id="menu"></div>
+  </div>
+
+  <div class="card">
+    <label>План на неделю</label>
+    <div id="plan"></div>
+  </div>
+
+  <button class="cta" id="send-btn" style="margin-bottom:10px">Отправить расчёт тренеру</button>
+  <button class="cta ghost" id="back-btn">Изменить данные</button>
+  <p class="note">Не опускайтесь ниже расчётной калорийности самостоятельно: слишком большой дефицит замедляет обмен веществ и приводит к срывам. При хронических заболеваниях, беременности или приёме лекарств план нужно согласовать с врачом.</p>
+</section>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+/* ---------- состояние формы ---------- */
+const state = { sex: 'male', activity: 1.375, goal: -0.15 };
+
+document.querySelectorAll('#sex button').forEach(b => {
+  b.onclick = () => {
+    state.sex = b.dataset.v;
+    document.querySelectorAll('#sex button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    haptic();
+  };
+});
+
+function bindOpts(attr, key, cast) {
+  const els = document.querySelectorAll(`[data-${attr}]`);
+  els.forEach(b => {
+    b.onclick = () => {
+      state[key] = cast(b.dataset[attr]);
+      els.forEach(x => x.setAttribute('aria-pressed', x === b));
+      haptic();
+    };
+  });
+}
+bindOpts('act', 'activity', parseFloat);
+bindOpts('goal', 'goal', parseFloat);
+
+function haptic() { tg?.HapticFeedback?.selectionChanged?.(); }
+
+/* ---------- расчёт ---------- */
+function calculate({ sex, age, height, weight, activity, goal }) {
+  // Миффлин–Сан Жеор: базовый обмен веществ
+  const bmr = 10 * weight + 6.25 * height - 5 * age + (sex === 'male' ? 5 : -161);
+  const tdee = bmr * activity;
+
+  let kcal = tdee * (1 + goal);
+  let capped = false;
+
+  // Защита: не уходим ниже физиологического минимума
+  const floor = sex === 'male' ? 1500 : 1200;
+  if (kcal < floor) { kcal = floor; capped = true; }
+  // и не ниже базового обмена более чем на 10%
+  if (kcal < bmr * 0.9) { kcal = bmr * 0.9; capped = true; }
+
+  // БЖУ: белок 1.8 г/кг, жиры 0.9 г/кг, остальное — углеводы
+  const prot = Math.round(weight * 1.8);
+  const fat = Math.round(weight * 0.9);
+  const carb = Math.max(50, Math.round((kcal - prot * 4 - fat * 9) / 4));
+
+  return {
+    bmr: Math.round(bmr),
+    tdee: Math.round(tdee),
+    kcal: Math.round(kcal / 10) * 10,
+    prot, fat, carb, capped, floor
+  };
+}
+
+/* ---------- генератор меню ---------- */
+const MEALS = {
+  breakfast: [
+    ['Овсянка на молоке с ягодами и орехами', 0.25],
+    ['Омлет из 3 яиц с овощами и цельнозерновым хлебом', 0.25],
+    ['Творог с бананом и мёдом', 0.22],
+    ['Гречка с яйцом-пашот и авокадо', 0.26]
+  ],
+  lunch: [
+    ['Куриная грудка, бурый рис, салат из овощей', 0.35],
+    ['Запечённая рыба, киноа, брокколи на пару', 0.33],
+    ['Индейка с булгуром и тушёными овощами', 0.35],
+    ['Говядина с картофелем и свежим салатом', 0.36]
+  ],
+  dinner: [
+    ['Тушёная рыба с овощным рагу', 0.25],
+    ['Куриное филе на гриле с салатом', 0.24],
+    ['Творожная запеканка и овощи', 0.23],
+    ['Индейка с фасолью и зеленью', 0.25]
+  ],
+  snack: [
+    ['Горсть орехов и яблоко', 0.15],
+    ['Греческий йогурт с ягодами', 0.14],
+    ['Протеиновый коктейль на молоке', 0.15],
+    ['Хумус с овощными палочками', 0.14]
+  ]
+};
+
+function buildMenu(kcal, seed) {
+  const pick = (arr) => arr[seed % arr.length];
+  const items = [
+    ['Завтрак', ...pick(MEALS.breakfast)],
+    ['Обед', ...pick(MEALS.lunch)],
+    ['Перекус', ...pick(MEALS.snack)],
+    ['Ужин', ...pick(MEALS.dinner)]
+  ];
+  return items.map(([name, dish, share]) => ({
+    name, dish, kcal: Math.round(kcal * share / 10) * 10
+  }));
+}
+
+const WEEK_PLAN = [
+  ['Понедельник', 'Силовая тренировка 45 мин + 8000 шагов'],
+  ['Вторник', 'Ходьба 40 мин, растяжка'],
+  ['Среда', 'Силовая тренировка 45 мин + 8000 шагов'],
+  ['Четверг', 'Отдых, лёгкая прогулка'],
+  ['Пятница', 'Силовая тренировка 45 мин'],
+  ['Суббота', 'Кардио 30 мин или активный отдых'],
+  ['Воскресенье', 'Отдых, замер веса и объёмов']
+];
+
+/* ---------- отрисовка ---------- */
+let lastResult = null;
+
+document.getElementById('calc-btn').onclick = () => {
+  const age = +document.getElementById('age').value;
+  const height = +document.getElementById('height').value;
+  const weight = +document.getElementById('weight').value;
+
+  if (!age || !height || !weight) return alertUser('Заполните возраст, рост и вес');
+  if (age < 14 || age > 100) return alertUser('Проверьте возраст');
+  if (height < 120 || height > 230) return alertUser('Проверьте рост');
+  if (weight < 35 || weight > 300) return alertUser('Проверьте вес');
+
+  const r = calculate({ ...state, age, height, weight });
+  lastResult = { ...r, age, height, weight, sex: state.sex, activity: state.activity, goal: state.goal };
+
+  document.getElementById('kcal').textContent = r.kcal;
+  document.getElementById('prot').textContent = r.prot;
+  document.getElementById('fat').textContent = r.fat;
+  document.getElementById('carb').textContent = r.carb;
+  document.getElementById('bmr').textContent = r.bmr;
+  document.getElementById('tdee').textContent = r.tdee;
+
+  document.getElementById('goal-label').textContent =
+    state.goal < 0 ? 'Плавное снижение веса' : state.goal > 0 ? 'Набор массы' : 'Удержание веса';
+
+  const warn = document.getElementById('floor-warn');
+  if (r.capped) {
+    warn.textContent = 'Калорийность подтянута до безопасного минимума. Более жёсткий дефицит замедляет обмен веществ и почти всегда заканчивается срывом.';
+    warn.classList.remove('hidden');
+  } else warn.classList.add('hidden');
+
+  document.getElementById('menu').innerHTML = buildMenu(r.kcal, age + weight)
+    .map(m => `<div class="meal">
+        <div class="meal-head"><b>${m.name}</b><span>${m.kcal} ккал</span></div>
+        <p>${m.dish}</p>
+      </div>`).join('');
+
+  document.getElementById('plan').innerHTML = WEEK_PLAN
+    .map(([d, t]) => `<div class="meal">
+        <div class="meal-head"><b>${d}</b></div>
+        <p>${t}</p>
+      </div>`).join('');
+
+  document.getElementById('form-screen').classList.add('hidden');
+  document.getElementById('result-screen').classList.remove('hidden');
+  window.scrollTo(0, 0);
+  tg?.HapticFeedback?.notificationOccurred?.('success');
+};
+
+document.getElementById('back-btn').onclick = () => {
+  document.getElementById('result-screen').classList.add('hidden');
+  document.getElementById('form-screen').classList.remove('hidden');
+  window.scrollTo(0, 0);
+};
+
+// Отправка данных в бота — бот получит их в message.web_app_data
+document.getElementById('send-btn').onclick = () => {
+  if (!lastResult) return;
+  if (!tg) return alertUser('Откройте приложение внутри Telegram');
+  tg.sendData(JSON.stringify(lastResult));
+};
+
+function alertUser(msg) {
+  if (tg?.showAlert) tg.showAlert(msg); else alert(msg);
+}
+</script>
+</body>
+</html>
