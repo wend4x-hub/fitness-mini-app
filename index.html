@@ -74,6 +74,7 @@
   .note{font-size:12px;color:var(--hint);margin-top:16px;line-height:1.5}
   .hidden{display:none}
   .warn{background:rgba(240,160,40,.14);border-radius:10px;padding:11px;font-size:13px;margin-top:12px}
+  .warn.ok{background:rgba(48,163,108,.14)}
 
   /* нижнее меню */
   .tabbar{
@@ -1548,24 +1549,53 @@ const PT = {
 const deg = r => r * 180 / Math.PI;
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
-/* Разворачиваем лицо так, чтобы линия внутренних углов глаз стала
-   горизонтальной. Иначе любой наклон головы в кадре подмешивается
-   во все углы и делает их несопоставимыми между фото. */
-function normalize(lm, W, H) {
+/* Векторная арифметика: считать приходится в трёх измерениях */
+const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
+const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+const cross = (a, b) => ({
+  x: a.y * b.z - a.z * b.y,
+  y: a.z * b.x - a.x * b.z,
+  z: a.x * b.y - a.y * b.x
+});
+const unit = a => { const l = Math.hypot(a.x, a.y, a.z) || 1; return { x: a.x / l, y: a.y / l, z: a.z / l }; };
+const mid3 = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 });
+
+/* Переводим точки в систему координат самого лица.
+   MediaPipe отдаёт не плоскую разметку, а трёхмерную: у каждой точки есть глубина.
+   Строим по лицу его собственные оси — X вдоль линии глаз, Y от глаз к подбородку,
+   Z перпендикулярно им — и меряем уже в них. Тогда результат перестаёт зависеть
+   от того, как голова повёрнута относительно камеры: развёрнута вбок, наклонена
+   набок или задрана вверх. Раньше компенсировался только наклон в плоскости экрана,
+   и поворот головы менял все пропорции.
+   Глубина z у MediaPipe дана в масштабе ширины кадра, отсюда умножение на W. */
+function frontalize(lm, W, H) {
   const raw = lm.map(p => ({ x: p.x * W, y: p.y * H }));
-  const a = raw[PT.eyeInR], b = raw[PT.eyeInL];
-  const roll = Math.atan2(b.y - a.y, b.x - a.x);
-  const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
-  const cos = Math.cos(-roll), sin = Math.sin(-roll);
-  const pts = raw.map(p => {
-    const dx = p.x - cx, dy = p.y - cy;
-    return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+  const P3 = lm.map(p => ({ x: p.x * W, y: p.y * H, z: (p.z || 0) * W }));
+
+  const eyeR = P3[PT.eyeInR], eyeL = P3[PT.eyeInL];
+  const origin = mid3(eyeR, eyeL);
+
+  let ax = unit(sub(eyeL, eyeR));               // ось X: вдоль линии глаз
+  const down = sub(P3[PT.chin], origin);        // примерное направление «вниз по лицу»
+  let az = unit(cross(ax, down));               // ось Z: перпендикуляр к плоскости лица
+  let ay = cross(az, ax);                       // ось Y: строго перпендикулярна двум другим
+
+  const pts = P3.map(p => {
+    const d = sub(p, origin);
+    return { x: dot(d, ax), y: dot(d, ay), z: dot(d, az) };
   });
-  return { raw, pts, rollDeg: deg(roll) };
+
+  // Углы головы относительно камеры — нужны только для оценки качества снимка
+  const rollDeg = deg(Math.atan2(raw[PT.eyeInL].y - raw[PT.eyeInR].y,
+                                 raw[PT.eyeInL].x - raw[PT.eyeInR].x));
+  const yawDeg = deg(Math.asin(Math.max(-1, Math.min(1, az.x))));
+  const pitchDeg = deg(Math.asin(Math.max(-1, Math.min(1, az.y))));
+
+  return { raw, pts, rollDeg, yawDeg, pitchDeg };
 }
 
 function measure(lm, W, H) {
-  const { raw, pts, rollDeg } = normalize(lm, W, H);
+  const { raw, pts, rollDeg, yawDeg, pitchDeg } = frontalize(lm, W, H);
   const P = i => pts[i];
 
   // наклон глазной щели: положительный — внешний угол выше внутреннего
@@ -1588,21 +1618,17 @@ function measure(lm, W, H) {
   const t3 = Math.abs(P(PT.chin).y - P(PT.subnasale).y);
   const tSum = t1 + t2 + t3;
 
-  // поворот головы: сравниваем расстояния от средней линии до краёв лица
-  const midX = (P(PT.eyeInR).x + P(PT.eyeInL).x) / 2;
-  const dR = Math.abs(midX - P(PT.cheekR).x);
-  const dL = Math.abs(P(PT.cheekL).x - midX);
-  const yaw = Math.abs(dL - dR) / ((dL + dR) / 2) * 100;
-
-  // расхождение сторон по нескольким парным точкам
+  /* Расхождение сторон. В системе координат лица средняя линия — это x = 0,
+     поэтому здесь остаётся настоящая асимметрия, а не следствие того,
+     что голова была повёрнута к камере боком. */
   const pairs = [[PT.cheekR, PT.cheekL], [PT.jawR, PT.jawL], [PT.eyeOutR, PT.eyeOutL], [PT.mouthR, PT.mouthL]];
   const asym = pairs.map(([r, l]) => {
-    const a = Math.abs(midX - P(r).x), b = Math.abs(P(l).x - midX);
+    const a = Math.abs(P(r).x), b = Math.abs(P(l).x);
     return Math.abs(a - b) / ((a + b) / 2) * 100;
   }).reduce((s, v) => s + v, 0) / pairs.length;
 
   return {
-    raw, pts, rollDeg, yaw, asym,
+    raw, pts, rollDeg, yawDeg, pitchDeg, asym,
     tiltR, tiltL,
     fwhr,
     cheekJaw: cheekW / jawW,
@@ -1655,7 +1681,7 @@ const METRICS = m => [
   {
     name: 'Расхождение сторон', value: m.asym, unit: '%', fmt: 1,
     min: 0, max: 12, band: [0, 4],
-    note: 'Среднее расхождение парных точек относительно средней линии. Идеально симметричных лиц не существует; несколько процентов — обычное дело.'
+    note: 'Среднее расхождение парных точек относительно средней линии лица. Считается уже после выравнивания, поэтому поворот головы в кадре его не завышает — это настоящая асимметрия, а не ракурс. Идеально симметричных лиц не существует, несколько процентов есть у всех.'
   }
 ];
 
@@ -1701,15 +1727,28 @@ function render(img, lm) {
   line(P(PT.hairline), P(PT.chin), 'rgba(255,255,255,.55)');
 
   // качество кадра
+  /* Повороты головы теперь скомпенсированы расчётом, но при больших углах
+     половина лица уходит из кадра, и сама модель расставляет точки хуже —
+     компенсировать неточную разметку нечем. Поэтому предупреждаем. */
   const q = document.getElementById('quality');
-  const problems = [];
-  if (m.yaw > 8) problems.push(`голова повёрнута в сторону (расхождение сторон кадра ${m.yaw.toFixed(0)}%)`);
-  if (Math.abs(m.rollDeg) > 10) problems.push(`сильный наклон головы, ${Math.abs(m.rollDeg).toFixed(0)}° — он скомпенсирован расчётом, но точность падает`);
-  if (problems.length) {
-    q.innerHTML = 'Снимок не идеален: ' + problems.join('; ') + '. Числа ниже стоит считать приблизительными — переснимите строго анфас.';
-    q.classList.remove('hidden');
+  const angles = [];
+  if (Math.abs(m.yawDeg) > 18) angles.push(`поворот в сторону ${Math.abs(m.yawDeg).toFixed(0)}°`);
+  // Угол кивка оценивается по плоскости лица и несёт смещение в пару градусов:
+  // подбородок глубже глаз, поэтому эта плоскость и при ровной голове слегка наклонена
+  if (Math.abs(m.pitchDeg) > 20) angles.push(`наклон вперёд-назад примерно ${Math.abs(m.pitchDeg).toFixed(0)}°`);
+  if (Math.abs(m.rollDeg) > 20) angles.push(`наклон набок ${Math.abs(m.rollDeg).toFixed(0)}°`);
+
+  if (angles.length) {
+    q.innerHTML = `Голова сильно развёрнута относительно камеры: ${angles.join(', ')}.
+      Сам разворот расчёт компенсирует, но при таких углах модель хуже видит дальнюю половину лица
+      и расставляет точки менее точно. Для надёжных чисел переснимите анфас.`;
+    q.classList.remove('hidden', 'ok');
   } else {
-    q.classList.add('hidden');
+    q.innerHTML = `Ракурс в порядке: поворот ${Math.abs(m.yawDeg).toFixed(0)}°,
+      наклон набок ${Math.abs(m.rollDeg).toFixed(0)}°. Измерения приведены к системе координат лица,
+      поэтому небольшие развороты на результат не влияют.`;
+    q.classList.remove('hidden');
+    q.classList.add('ok');
   }
 
   // измерения
