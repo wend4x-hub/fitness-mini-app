@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Калькулятор питания</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Телосложение и лицо</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
@@ -13,25 +13,27 @@
     --card: var(--tg-theme-secondary-bg-color, #f3f4f6);
     --accent: var(--tg-theme-button-color, #2f7cf6);
     --accent-text: var(--tg-theme-button-text-color, #ffffff);
+    --bad: #e5484d;
+    --good: #30a46c;
     --radius: 14px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{
-    margin:0;padding:16px 16px 40px;
+    margin:0;padding:16px 16px 92px;
     background:var(--bg);color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     font-size:16px;line-height:1.45;
   }
   h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:16px;margin:22px 0 10px}
   .sub{color:var(--hint);font-size:14px;margin:0 0 20px}
   .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px}
   label{display:block;font-size:13px;color:var(--hint);margin-bottom:6px}
-  input[type=number]{
+  input.fld{
     width:100%;padding:12px;border:none;border-radius:10px;
     background:var(--bg);color:var(--text);font-size:17px;font-family:inherit;
   }
-  input[type=number]::-webkit-outer-spin-button,
-  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input.fld.bad{outline:2px solid var(--bad)}
   .row{display:flex;gap:10px}
   .row > div{flex:1}
   .field{margin-bottom:14px}
@@ -56,6 +58,7 @@
     font-size:17px;font-weight:600;font-family:inherit;cursor:pointer;
   }
   .cta.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .cta[disabled]{opacity:.5}
   .big{font-size:38px;font-weight:700;line-height:1.1;margin:2px 0}
   .unit{font-size:15px;color:var(--hint);font-weight:400}
   .stats{display:flex;gap:8px;margin-top:14px}
@@ -71,110 +74,383 @@
   .note{font-size:12px;color:var(--hint);margin-top:16px;line-height:1.5}
   .hidden{display:none}
   .warn{background:rgba(240,160,40,.14);border-radius:10px;padding:11px;font-size:13px;margin-top:12px}
+
+  /* нижнее меню */
+  .tabbar{
+    position:fixed;left:0;right:0;bottom:0;display:flex;z-index:10;
+    background:var(--card);border-top:1px solid rgba(128,128,128,.22);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tabbar button{
+    flex:1;background:none;border:none;padding:9px 2px 9px;cursor:pointer;
+    color:var(--hint);font-family:inherit;font-size:10.5px;line-height:1.2;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+  }
+  .tabbar button[aria-selected="true"]{color:var(--accent)}
+  .tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+  /* экран лица */
+  #shot{width:100%;border-radius:12px;display:block;background:var(--bg)}
+  .metric{padding:14px 0;border-bottom:1px solid var(--bg)}
+  .metric:last-child{border-bottom:none;padding-bottom:0}
+  .metric-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .metric-head b{font-size:14px;font-weight:600}
+  .metric-val{font-size:17px;font-weight:700;white-space:nowrap}
+  .scale{position:relative;height:6px;border-radius:3px;background:var(--bg);margin:10px 0 6px}
+  .scale .band{position:absolute;top:0;bottom:0;background:rgba(48,163,108,.45);border-radius:3px}
+  .scale .pin{position:absolute;top:-4px;width:3px;height:14px;border-radius:2px;background:var(--text)}
+  .metric p{margin:0;font-size:12px;color:var(--hint);line-height:1.5}
+  .verdict{font-size:12px;font-weight:600}
+  .verdict.in{color:var(--good)}
+  .verdict.out{color:var(--hint)}
+  .src{font-size:11.5px;color:var(--hint);line-height:1.6}
+  .src a{color:var(--hint)}
+  .empty{text-align:center;padding:48px 16px;color:var(--hint)}
+  .empty svg{width:44px;height:44px;stroke:currentColor;fill:none;stroke-width:1.3;margin-bottom:14px}
+  .empty b{display:block;color:var(--text);font-size:17px;margin-bottom:6px}
+
+  /* дневник */
+  .daynav{display:flex;align-items:center;gap:10px}
+  .daynav > div{flex:1;text-align:center}
+  .daynav button{
+    width:38px;height:38px;flex:none;border:none;border-radius:10px;cursor:pointer;
+    background:var(--bg);color:var(--text);font-size:22px;font-family:inherit;line-height:1;
+  }
+  .bar{height:8px;border-radius:4px;background:var(--bg);margin:14px 0 0;overflow:hidden}
+  .bar > div{height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .25s}
+  .bar > div.over{background:var(--bad)}
+  #results{margin-top:8px}
+  .hit{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;
+    padding:11px 12px;margin-top:6px;border:none;border-radius:10px;cursor:pointer;
+    background:var(--bg);color:var(--text);font-family:inherit;font-size:14px;text-align:left;
+  }
+  .hit span{color:var(--hint);font-size:12px;white-space:nowrap}
+  .portion{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .portion input{flex:1}
+  .portion button{flex:none;padding:12px 16px}
+  .entry{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--bg)}
+  .entry:last-child{border-bottom:none;padding-bottom:0}
+  .entry b{font-size:14px;font-weight:600;display:block}
+  .entry small{color:var(--hint);font-size:12px}
+  .entry .rm{
+    flex:none;border:none;background:none;color:var(--hint);cursor:pointer;
+    font-size:20px;line-height:1;padding:0 2px;font-family:inherit;
+  }
+  .entry img{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none}
+  .entry-main{display:flex;gap:10px;align-items:center;min-width:0}
+  .group-title{font-size:12px;color:var(--hint);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.4px}
+  .group-title:first-child{margin-top:0}
+  #photo-preview{width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-top:10px;display:block}
+
+  /* профиль */
+  .avatar-row{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+  .avatar{
+    width:72px;height:72px;border-radius:50%;flex:none;object-fit:cover;
+    background:var(--bg);display:flex;align-items:center;justify-content:center;
+  }
+  .avatar-ph{width:72px;height:72px;border-radius:50%;flex:none;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:26px;font-weight:600}
+  .avatar-row .cta{padding:10px 14px;font-size:14px;width:auto}
+  .kv{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--bg);gap:12px}
+  .kv:last-child{border-bottom:none;padding-bottom:0}
+  .kv span{color:var(--hint);font-size:13px}
+  .kv b{font-size:16px;white-space:nowrap}
+  .kv b small{font-weight:400;color:var(--hint);font-size:12px;margin-left:4px}
 </style>
 </head>
 <body>
 
-<!-- ШАГ 1: ввод данных -->
-<section id="form-screen">
-  <h1>Расчёт питания</h1>
-  <p class="sub">Посчитаем норму калорий и составим меню</p>
+<main>
+
+<!-- ================= ВКЛАДКА: ПИТАНИЕ ================= -->
+<section class="tab" id="tab-nutrition">
+
+  <div id="form-screen">
+    <h1>Расчёт питания</h1>
+    <p class="sub">Посчитаем норму калорий и составим меню</p>
+
+    <div class="card" id="profile-summary"></div>
+
+    <div class="card">
+      <label>Цель</label>
+      <button type="button" class="opt" data-goal="-0.15" aria-pressed="true">Снижение веса<small>Плавный темп, около 0,5 кг в неделю</small></button>
+      <button type="button" class="opt" data-goal="0" aria-pressed="false">Удержание веса<small>Сохранить текущую форму</small></button>
+      <button type="button" class="opt" data-goal="0.1" aria-pressed="false">Набор массы<small>С небольшим профицитом</small></button>
+    </div>
+
+    <div id="form-err" class="warn hidden" style="margin-bottom:12px"></div>
+    <button class="cta" id="calc-btn">Рассчитать</button>
+    <p class="note">Расчёт по формуле Миффлина–Сан Жеора. Это ориентир, а не медицинское назначение.</p>
+  </div>
+
+  <div id="result-screen" class="hidden">
+    <h1>Ваша норма</h1>
+    <p class="sub" id="goal-label"></p>
+
+    <div class="card">
+      <label>Калорийность в день</label>
+      <div class="big"><span id="kcal">0</span> <span class="unit">ккал</span></div>
+      <div class="stats">
+        <div class="stat"><b id="prot">0</b><span>белки, г</span></div>
+        <div class="stat"><b id="fat">0</b><span>жиры, г</span></div>
+        <div class="stat"><b id="carb">0</b><span>углеводы, г</span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="bmr">0</b><span>метаболизм покоя</span></div>
+        <div class="stat"><b id="tdee">0</b><span>расход с активностью</span></div>
+      </div>
+      <div id="floor-warn" class="warn hidden"></div>
+    </div>
+
+    <div class="card">
+      <label>Примерное меню на день</label>
+      <div id="menu"></div>
+    </div>
+
+    <div class="card hidden" id="path-card">
+      <label>Путь к цели</label>
+      <div id="path-body"></div>
+    </div>
+
+    <div class="card">
+      <label>План на неделю</label>
+      <div id="plan"></div>
+    </div>
+
+    <button class="cta" id="send-btn" style="margin-bottom:10px">Отправить расчёт тренеру</button>
+    <div id="send-status" class="warn hidden" style="margin:0 0 10px"></div>
+    <button class="cta ghost" id="back-btn">Изменить данные</button>
+    <p class="note">Не опускайтесь ниже расчётной калорийности самостоятельно: слишком большой дефицит замедляет обмен веществ и приводит к срывам. При хронических заболеваниях, беременности или приёме лекарств план нужно согласовать с врачом.</p>
+  </div>
+
+</section>
+
+<!-- ================= ВКЛАДКА: ЛИЦО ================= -->
+<section class="tab hidden" id="tab-face">
+  <h1>Измерение лица</h1>
+  <p class="sub">Геометрия по фотографии и сравнение с опубликованными данными</p>
+
+  <div class="card">
+    <label>Фотография</label>
+    <input type="file" id="photo" accept="image/*" class="hidden">
+    <button class="cta" id="pick-btn">Выбрать или снять фото</button>
+    <p class="note" style="margin-top:12px">
+      Снимайте анфас, лицо прямо в камеру, нейтральное выражение, ровный свет.
+      Держите телефон на расстоянии вытянутой руки: с 20–30 см объектив заметно искажает
+      пропорции — нос шире, челюсть уже, и все числа поедут.
+    </p>
+  </div>
+
+  <div id="face-status" class="warn hidden"></div>
+
+  <div class="card hidden" id="face-canvas-card">
+    <label>Разметка</label>
+    <canvas id="shot"></canvas>
+    <div id="quality" class="warn hidden"></div>
+  </div>
+
+  <div class="card hidden" id="face-metrics-card">
+    <label>Измерения</label>
+    <div id="metrics"></div>
+  </div>
+
+  <div class="card hidden" id="face-sources-card">
+    <label>Откуда взяты ориентиры</label>
+    <p class="src" id="sources"></p>
+  </div>
+
+  <div id="face-empty" class="empty">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M9 15c.8.7 1.9 1 3 1s2.2-.3 3-1"/></svg>
+    <b>Пока пусто</b>
+    Загрузите фото — разметим лицо и посчитаем пропорции
+  </div>
+</section>
+
+<!-- ================= ЗАГЛУШКИ ================= -->
+<section class="tab hidden" id="tab-diary">
+  <h1>Дневник питания</h1>
+  <p class="sub" id="diary-date-label">Сегодня</p>
+
+  <div class="card">
+    <div class="daynav">
+      <button type="button" id="day-prev" aria-label="Предыдущий день">‹</button>
+      <div id="day-total">
+        <div class="big"><span id="eaten">0</span> <span class="unit">ккал</span></div>
+        <div id="eaten-sub" class="src">норма не рассчитана — загляните во вкладку «Питание»</div>
+      </div>
+      <button type="button" id="day-next" aria-label="Следующий день">›</button>
+    </div>
+    <div class="bar"><div id="bar-fill"></div></div>
+    <div class="stats">
+      <div class="stat"><b id="d-prot">0</b><span>белки, г</span></div>
+      <div class="stat"><b id="d-fat">0</b><span>жиры, г</span></div>
+      <div class="stat"><b id="d-carb">0</b><span>углеводы, г</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Добавить приём пищи</label>
+    <div class="seg" id="meal-type">
+      <button type="button" data-meal="Завтрак" aria-pressed="true">Завтрак</button>
+      <button type="button" data-meal="Обед" aria-pressed="false">Обед</button>
+      <button type="button" data-meal="Ужин" aria-pressed="false">Ужин</button>
+      <button type="button" data-meal="Перекус" aria-pressed="false">Перекус</button>
+    </div>
+    <div style="margin-top:12px">
+      <input type="text" class="fld" id="search" autocomplete="off" placeholder="Что вы ели? Например: гречка">
+    </div>
+    <div id="results"></div>
+    <div id="off-row" class="hidden" style="margin-top:10px">
+      <button class="cta ghost" id="off-btn">Поискать среди упакованных продуктов</button>
+    </div>
+    <input type="file" id="meal-photo" accept="image/*" class="hidden">
+    <button class="cta ghost" id="photo-btn" style="margin-top:10px">Приложить фото к записи</button>
+    <img id="photo-preview" class="hidden" alt="">
+    <div id="diary-err" class="warn hidden"></div>
+  </div>
+
+  <div class="card" id="entries-card">
+    <label>Съедено за день</label>
+    <div id="entries"></div>
+  </div>
+
+  <p class="note">
+    Значения по домашним блюдам — усреднённые: у борща вашей бабушки и у столовского калорийность отличается заметно,
+    потому что отличается рецепт. Для упакованных продуктов данные берутся из Open Food Facts по факту, с этикетки.
+    Записи хранятся только в вашем телефоне и никуда не отправляются.
+  </p>
+</section>
+
+<section class="tab hidden" id="tab-progress">
+  <div class="empty">
+    <svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>
+    <b>Прогресс</b>
+    График веса и объёмов, фото до и после, сравнение по неделям.<br>Скоро
+  </div>
+</section>
+
+<section class="tab hidden" id="tab-profile">
+  <h1>Профиль</h1>
+  <p class="sub">Заполняется один раз — дальше подставляется во все расчёты</p>
+
+  <div class="card">
+    <div class="avatar-row">
+      <div id="avatar-box"></div>
+      <div>
+        <button class="cta ghost" id="avatar-btn">Сменить фото</button>
+        <input type="file" id="avatar-file" accept="image/*" class="hidden">
+      </div>
+    </div>
+    <div class="field">
+      <label>Имя</label>
+      <input type="text" class="fld" id="p-name" autocomplete="off" placeholder="Как к вам обращаться">
+    </div>
+    <div class="field">
+      <label>Ник</label>
+      <input type="text" class="fld" id="p-nick" autocomplete="off" placeholder="@nickname">
+    </div>
+  </div>
 
   <div class="card">
     <div class="field">
       <label>Пол</label>
-      <div class="seg" id="sex">
-        <button type="button" data-v="male" aria-pressed="true">Мужской</button>
-        <button type="button" data-v="female" aria-pressed="false">Женский</button>
+      <div class="seg" id="p-sex">
+        <button type="button" data-psex="male" aria-pressed="true">Мужской</button>
+        <button type="button" data-psex="female" aria-pressed="false">Женский</button>
       </div>
     </div>
     <div class="row field">
       <div>
         <label>Возраст</label>
-        <input type="number" id="age" inputmode="numeric" placeholder="28">
+        <input type="text" class="fld" id="p-age" inputmode="numeric" autocomplete="off" placeholder="28">
       </div>
       <div>
         <label>Рост, см</label>
-        <input type="number" id="height" inputmode="numeric" placeholder="178">
+        <input type="text" class="fld" id="p-height" inputmode="decimal" autocomplete="off" placeholder="178">
+      </div>
+    </div>
+    <div class="row field">
+      <div>
+        <label>Текущий вес, кг</label>
+        <input type="text" class="fld" id="p-weight" inputmode="decimal" autocomplete="off" placeholder="82,5">
       </div>
       <div>
-        <label>Вес, кг</label>
-        <input type="number" id="weight" inputmode="decimal" placeholder="82">
+        <label>Целевой вес, кг</label>
+        <input type="text" class="fld" id="p-target" inputmode="decimal" autocomplete="off" placeholder="75">
       </div>
     </div>
   </div>
 
   <div class="card">
     <label>Активность</label>
-    <button type="button" class="opt" data-act="1.2" aria-pressed="false">Минимальная<small>Сидячая работа, спорта нет</small></button>
-    <button type="button" class="opt" data-act="1.375" aria-pressed="true">Лёгкая<small>Тренировки 1–3 раза в неделю</small></button>
-    <button type="button" class="opt" data-act="1.55" aria-pressed="false">Средняя<small>Тренировки 3–5 раз в неделю</small></button>
-    <button type="button" class="opt" data-act="1.725" aria-pressed="false">Высокая<small>Тренировки 6–7 раз в неделю</small></button>
-    <button type="button" class="opt" data-act="1.9" aria-pressed="false">Очень высокая<small>Физический труд или две тренировки в день</small></button>
+    <button type="button" class="opt" data-pact="1.2" aria-pressed="false">Минимальная<small>Сидячая работа, спорта нет</small></button>
+    <button type="button" class="opt" data-pact="1.375" aria-pressed="true">Лёгкая<small>Тренировки 1–3 раза в неделю</small></button>
+    <button type="button" class="opt" data-pact="1.55" aria-pressed="false">Средняя<small>Тренировки 3–5 раз в неделю</small></button>
+    <button type="button" class="opt" data-pact="1.725" aria-pressed="false">Высокая<small>Тренировки 6–7 раз в неделю</small></button>
+    <button type="button" class="opt" data-pact="1.9" aria-pressed="false">Очень высокая<small>Физический труд или две тренировки в день</small></button>
   </div>
 
-  <div class="card">
-    <label>Цель</label>
-    <button type="button" class="opt" data-goal="-0.15" aria-pressed="true">Снижение веса<small>Плавный темп, около 0,5 кг в неделю</small></button>
-    <button type="button" class="opt" data-goal="0" aria-pressed="false">Удержание веса<small>Сохранить текущую форму</small></button>
-    <button type="button" class="opt" data-goal="0.1" aria-pressed="false">Набор массы<small>С небольшим профицитом</small></button>
+  <div id="p-err" class="warn hidden" style="margin-bottom:12px"></div>
+  <button class="cta" id="p-save">Сохранить</button>
+  <div id="p-saved" class="src" style="text-align:center;margin-top:10px"></div>
+
+  <div class="card hidden" id="p-stats" style="margin-top:14px">
+    <label>Показатели</label>
+    <div id="p-stats-body"></div>
   </div>
 
-  <div id="form-err" class="warn hidden" style="margin-bottom:12px"></div>
-  <button class="cta" id="calc-btn">Рассчитать</button>
-  <p class="note">Расчёт по формуле Миффлина–Сан Жеора. Это ориентир, а не медицинское назначение.</p>
+  <p class="note">Данные хранятся только в вашем телефоне и никуда не отправляются.</p>
 </section>
 
-<!-- ШАГ 2: результат -->
-<section id="result-screen" class="hidden">
-  <h1>Ваша норма</h1>
-  <p class="sub" id="goal-label"></p>
+</main>
 
-  <div class="card">
-    <label>Калорийность в день</label>
-    <div class="big"><span id="kcal">0</span> <span class="unit">ккал</span></div>
-    <div class="stats">
-      <div class="stat"><b id="prot">0</b><span>белки, г</span></div>
-      <div class="stat"><b id="fat">0</b><span>жиры, г</span></div>
-      <div class="stat"><b id="carb">0</b><span>углеводы, г</span></div>
-    </div>
-    <div class="stats">
-      <div class="stat"><b id="bmr">0</b><span>метаболизм покоя</span></div>
-      <div class="stat"><b id="tdee">0</b><span>расход с активностью</span></div>
-    </div>
-    <div id="floor-warn" class="warn hidden"></div>
-  </div>
-
-  <div class="card">
-    <label>Примерное меню на день</label>
-    <div id="menu"></div>
-  </div>
-
-  <div class="card">
-    <label>План на неделю</label>
-    <div id="plan"></div>
-  </div>
-
-  <button class="cta" id="send-btn" style="margin-bottom:10px">Отправить расчёт тренеру</button>
-  <div id="send-status" class="warn hidden" style="margin:0 0 10px"></div>
-  <button class="cta ghost" id="back-btn">Изменить данные</button>
-  <p class="note">Не опускайтесь ниже расчётной калорийности самостоятельно: слишком большой дефицит замедляет обмен веществ и приводит к срывам. При хронических заболеваниях, беременности или приёме лекарств план нужно согласовать с врачом.</p>
-</section>
+<nav class="tabbar" id="tabbar">
+  <button type="button" data-tab="nutrition" aria-selected="true">
+    <svg viewBox="0 0 24 24"><path d="M7 3v8a3 3 0 006 0V3M10 3v6M17 3c-1.5 2-2 4-2 7h4c0-3-.5-5-2-7zM17 10v11M10 14v7"/></svg>
+    Питание
+  </button>
+  <button type="button" data-tab="diary" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M5 4h12a2 2 0 012 2v14a2 2 0 01-2 2H5z"/><path d="M5 4a2 2 0 000 4h2M9 12h6M9 16h4"/></svg>
+    Дневник
+  </button>
+  <button type="button" data-tab="face" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 011-1h3M20 8V5a1 1 0 00-1-1h-3M4 16v3a1 1 0 001 1h3M20 16v3a1 1 0 01-1 1h-3"/><circle cx="12" cy="12" r="3.5"/></svg>
+    Лицо
+  </button>
+  <button type="button" data-tab="progress" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>
+    Прогресс
+  </button>
+  <button type="button" data-tab="profile" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    Профиль
+  </button>
+</nav>
 
 <script>
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
-/* ---------- состояние формы ---------- */
-const state = { sex: 'male', activity: 1.375, goal: -0.15 };
+// Любой вызов Telegram-API оборачиваем: в старых версиях клиента он бросает исключение
+function safeTg(fn) { try { fn(); } catch (e) { /* метод не поддерживается этой версией */ } }
+function haptic() { safeTg(() => tg?.HapticFeedback?.selectionChanged?.()); }
 
-document.querySelectorAll('#sex button').forEach(b => {
-  b.onclick = () => {
-    state.sex = b.dataset.v;
-    document.querySelectorAll('#sex button').forEach(x => x.setAttribute('aria-pressed', x === b));
+/* ---------- вкладки ---------- */
+document.querySelectorAll('#tabbar button').forEach(btn => {
+  btn.onclick = () => {
+    const name = btn.dataset.tab;
+    document.querySelectorAll('.tab').forEach(s => s.classList.toggle('hidden', s.id !== 'tab-' + name));
+    document.querySelectorAll('#tabbar button').forEach(b => b.setAttribute('aria-selected', b === btn));
+    window.scrollTo(0, 0);
     haptic();
   };
 });
+
+/* ---------- состояние расчёта ---------- */
+// Пол, возраст, рост, вес и активность живут в профиле и только там.
+// Здесь остаётся единственное, что относится именно к расчёту, — выбор цели.
+const state = { goal: -0.15 };
 
 function bindOpts(attr, key, cast) {
   const els = document.querySelectorAll(`[data-${attr}]`);
@@ -186,11 +462,17 @@ function bindOpts(attr, key, cast) {
     };
   });
 }
-bindOpts('act', 'activity', parseFloat);
 bindOpts('goal', 'goal', parseFloat);
 
-function safeTg(fn) { try { fn(); } catch (e) {} }
-function haptic() { safeTg(() => tg?.HapticFeedback?.selectionChanged?.()); }
+// Принимаем и «67.4», и «67,4»: на русской раскладке запятая — это норма,
+// а input type="number" такое значение просто выбрасывает, возвращая пустую строку
+function num(id) {
+  const raw = document.getElementById(id).value.trim().replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(raw)) return NaN;
+  return parseFloat(raw);
+}
+
+function mark(id, ok) { document.getElementById(id).classList.toggle('bad', !ok); }
 
 /* ---------- расчёт ---------- */
 function calculate({ sex, age, height, weight, activity, goal }) {
@@ -249,7 +531,9 @@ const MEALS = {
 };
 
 function buildMenu(kcal, seed) {
-  const pick = (arr) => arr[seed % arr.length];
+  // seed обязан быть целым: arr[3.4] === undefined, и разбор блюда падал с TypeError
+  const n = Math.abs(Math.round(seed)) || 0;
+  const pick = (arr) => arr[n % arr.length];
   const items = [
     ['Завтрак', ...pick(MEALS.breakfast)],
     ['Обед', ...pick(MEALS.lunch)],
@@ -276,17 +560,17 @@ let lastResult = null;
 
 document.getElementById('calc-btn').onclick = () => {
   document.getElementById('form-err').classList.add('hidden');
-  const age = +document.getElementById('age').value;
-  const height = +document.getElementById('height').value;
-  const weight = +document.getElementById('weight').value;
+  const p = profile;
+  if (!p.age || !p.height || !p.weight)
+    return alertUser('Сначала заполните профиль — возраст, рост и вес берутся оттуда.');
 
-  if (!age || !height || !weight) return alertUser('Заполните возраст, рост и вес');
-  if (age < 14 || age > 100) return alertUser('Проверьте возраст');
-  if (height < 120 || height > 230) return alertUser('Проверьте рост');
-  if (weight < 35 || weight > 300) return alertUser('Проверьте вес');
-
-  const r = calculate({ ...state, age, height, weight });
-  lastResult = { ...r, age, height, weight, sex: state.sex, activity: state.activity, goal: state.goal };
+  const { age, height, weight, sex, activity } = p;
+  const r = calculate({ sex, age, height, weight, activity, goal: state.goal });
+  lastResult = { ...r, age, height, weight, sex, activity, goal: state.goal };
+  renderPath(p, state.goal);
+  // норму подхватывает дневник, чтобы показывать остаток на день
+  store(NORM_KEY, { kcal: r.kcal, prot: r.prot, fat: r.fat, carb: r.carb });
+  if (typeof renderDay === 'function') renderDay();
 
   document.getElementById('kcal').textContent = r.kcal;
   document.getElementById('prot').textContent = r.prot;
@@ -304,7 +588,7 @@ document.getElementById('calc-btn').onclick = () => {
     warn.classList.remove('hidden');
   } else warn.classList.add('hidden');
 
-  document.getElementById('menu').innerHTML = buildMenu(r.kcal, age + weight)
+  document.getElementById('menu').innerHTML = buildMenu(r.kcal, Math.round(age + weight))
     .map(m => `<div class="meal">
         <div class="meal-head"><b>${m.name}</b><span>${m.kcal} ккал</span></div>
         <p>${m.dish}</p>
@@ -336,16 +620,1127 @@ document.getElementById('send-btn').onclick = () => {
     if (!tg || !tg.initData) throw new Error('not in telegram');
     tg.sendData(JSON.stringify(lastResult));
   } catch (e) {
-    status.textContent = 'Отправка данных работает только когда приложение открыто внутри Telegram.';
+    status.textContent = 'Отправка данных работает только когда приложение открыто внутри Telegram, кнопкой из клавиатуры бота.';
     status.classList.remove('hidden');
   }
 };
 
+// Показываем ошибку прямо в интерфейсе: tg.showAlert бросает исключение
+// в версиях клиента ниже 6.2 и вне Telegram, и обработчик клика умирает
 function alertUser(msg) {
   const box = document.getElementById('form-err');
   box.textContent = msg;
   box.classList.remove('hidden');
   box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ======================= ДНЕВНИК ПИТАНИЯ ======================= */
+
+// Значения на 100 г готового блюда: [название, ккал, белки, жиры, углеводы, типичная порция в г].
+// Для домашних блюд это усреднённые величины — рецепты различаются, и точность здесь
+// принципиально ограничена. Для упакованных продуктов ниже есть поиск по Open Food Facts.
+const DISHES = [
+['Гречка варёная',110,4.2,1.1,21,150],['Рис белый варёный',130,2.7,0.3,28,150],
+['Рис бурый варёный',112,2.6,0.9,23,150],['Овсянка на воде',88,3,1.7,15,200],
+['Овсянка на молоке',110,3.2,2.4,17,200],['Макароны варёные',130,5,1.1,25,180],
+['Картофель отварной',82,2,0.4,17,180],['Картофельное пюре',106,2.2,3.5,15,180],
+['Картофель жареный',190,2.8,9.5,23,150],['Картофель фри',280,3.4,14,35,120],
+['Перловка варёная',110,3,0.4,23,150],['Булгур варёный',83,3,0.2,18,150],
+['Киноа варёная',120,4.4,1.9,21,150],['Кускус варёный',112,3.8,0.2,23,150],
+['Пшённая каша',90,3,0.8,17,200],['Манная каша на молоке',98,3,3.2,15,200],
+['Чечевица варёная',116,9,0.4,20,150],['Фасоль варёная',123,7.8,0.5,22,150],
+['Нут варёный',164,8.9,2.6,27,150],
+['Куриная грудка варёная',137,29.8,1.8,0.5,150],['Куриная грудка гриль',165,31,3.6,0,150],
+['Куриное бедро запечённое',210,25,12,0,150],['Курица жареная с кожей',240,26,14,0,150],
+['Индейка филе запечённая',150,29,3,0,150],['Говядина тушёная',230,25,14,0,150],
+['Говядина варёная',220,27,12,0,150],['Свинина жареная',290,22,22,0,150],
+['Свинина тушёная',235,20,17,0,150],['Котлета куриная',220,15,15,8,100],
+['Котлета свиная',260,14,20,8,100],['Шашлык свиной',280,20,22,0,200],
+['Шашлык куриный',190,22,11,0,200],['Пельмени варёные',250,12,12,24,250],
+['Сосиски',270,11,24,2,100],['Колбаса варёная',250,12,22,1.5,50],
+['Колбаса копчёная',400,17,37,1,50],['Бекон жареный',470,30,40,0,40],
+['Ветчина',180,17,12,1,50],['Печень куриная тушёная',165,21,7,2,150],
+['Фарш говяжий жареный',250,20,18,0,150],['Стейк говяжий',270,26,18,0,200],
+['Наггетсы куриные',290,15,18,16,150],['Плов с курицей',190,10,7,22,250],
+['Плов со свининой',230,9,12,22,250],['Голубцы',120,6,6,10,200],
+['Тефтели в соусе',170,11,9,11,200],['Гуляш',180,15,11,5,200],
+['Бефстроганов',200,16,13,4,200],['Холодец',120,14,7,0.5,150],
+['Треска отварная',78,17,0.7,0,150],['Лосось запечённый',200,22,12,0,150],
+['Сёмга слабосолёная',200,21,13,0,80],['Форель запечённая',170,21,9,0,150],
+['Горбуша отварная',140,23,5,0,150],['Минтай отварной',79,17,1,0,150],
+['Скумбрия копчёная',220,21,15,0,100],['Сельдь солёная',250,17,20,0,80],
+['Тунец в собственном соку',96,22,1,0,100],['Креветки варёные',95,20,1.5,0,150],
+['Кальмар отварной',110,18,2,3,150],['Рыба жареная',200,19,12,5,150],
+['Рыбные палочки',250,12,14,20,120],['Икра красная',250,24,17,4,30],
+['Крабовые палочки',90,6,1,14,100],
+['Борщ',50,2,2.5,5,300],['Щи',40,1.5,2,4,300],['Куриный суп с лапшой',55,4,2,6,300],
+['Солянка',80,5,5,3,300],['Гороховый суп',65,4,2,8,300],['Грибной суп',45,2,2.5,4,300],
+['Уха',45,5,1.5,2,300],['Харчо',85,4,5,6,300],['Окрошка',60,2.5,3.5,5,300],
+['Крем-суп из тыквы',55,1.5,2.5,7,300],['Рассольник',55,2,2.5,6,300],
+['Суп-пюре куриный',70,4,4,5,300],['Том ям',60,4,3,4,300],['Бульон куриный',20,2,1,0.5,250],
+['Оливье',200,5.5,16,8,200],['Селёдка под шубой',190,6,15,7,200],
+['Цезарь с курицей',190,12,13,5,200],['Греческий салат',130,3,11,5,200],
+['Винегрет',95,1.5,6,8,200],['Салат из огурцов и помидоров',70,1,5,4,150],
+['Салат из капусты',60,1.5,3,7,150],['Крабовый салат',180,5,14,8,150],
+['Морковь по-корейски',130,1,9,10,100],['Квашеная капуста',25,1.5,0.1,4,100],
+['Солёные огурцы',12,0.8,0.1,1.7,100],
+['Яйцо варёное',155,12.6,10.6,1.1,55],['Яичница из двух яиц',190,13,15,1,120],
+['Омлет',180,11,14,2,150],['Творог 5%',120,17,5,3,180],
+['Творог обезжиренный',80,18,0.6,1.5,180],['Творог 9%',160,16,9,2,180],
+['Сметана 20%',200,2.8,20,3,30],['Сметана 15%',160,2.6,15,3,30],
+['Йогурт натуральный',60,4.3,3.2,4,150],['Греческий йогурт 2%',73,10,2,4,150],
+['Кефир 1%',40,3,1,4,250],['Молоко 2,5%',52,2.9,2.5,4.7,250],
+['Молоко 3,2%',60,2.9,3.2,4.7,250],['Сыр твёрдый',360,25,27,1,40],
+['Моцарелла',280,22,21,2,50],['Сыр плавленый',290,12,25,4,30],
+['Творожный сыр',250,6,24,3,30],['Брынза',260,17,20,2,50],
+['Масло сливочное',720,0.8,80,1,10],['Сливки 10%',120,3,10,4,50],
+['Мороженое пломбир',230,3.5,15,20,100],['Сырники',220,15,9,20,150],
+['Хлеб белый',260,8,3,50,35],['Хлеб чёрный',210,7,1.2,40,35],
+['Хлеб цельнозерновой',230,9,3,40,35],['Батон',260,7.5,3,51,35],
+['Лаваш',240,8,1,50,80],['Булочка сдобная',300,7,8,50,80],
+['Круассан',400,8,21,45,70],['Пирожок с картошкой',250,5,10,34,90],
+['Пирожок с мясом',280,9,14,30,90],['Блины',190,6,7,26,150],
+['Оладьи',210,6,8,28,150],['Вареники с картошкой',180,5,4,30,250],
+['Хачапури',290,12,15,27,200],['Пицца пепперони',280,12,13,28,300],
+['Пицца маргарита',250,11,9,30,300],['Шаурма',220,12,12,16,300],
+['Бургер',260,13,13,22,200],['Чизбургер',280,14,14,25,200],
+['Хот-дог',250,10,14,22,150],['Суши ролл Филадельфия',200,8,9,22,200],
+['Роллы Калифорния',180,6,6,25,200],
+['Яблоко',52,0.4,0.2,14,180],['Банан',95,1.5,0.2,21,120],['Апельсин',43,0.9,0.2,8,180],
+['Мандарин',38,0.8,0.2,7.5,80],['Груша',47,0.4,0.3,11,180],['Виноград',65,0.6,0.2,16,150],
+['Клубника',33,0.7,0.3,8,150],['Арбуз',30,0.6,0.2,8,300],['Дыня',34,0.6,0.2,8,200],
+['Киви',61,1.1,0.5,15,80],['Ананас',50,0.5,0.1,13,150],['Авокадо',160,2,15,9,150],
+['Огурец',15,0.8,0.1,3,100],['Помидор',20,0.9,0.2,4,120],
+['Капуста белокочанная',28,1.8,0.1,5,150],['Брокколи варёная',35,3,0.4,7,150],
+['Морковь',35,1.3,0.1,7,100],['Свёкла варёная',44,1.7,0.2,10,100],
+['Лук репчатый',40,1.4,0.1,9,50],['Перец болгарский',27,1.3,0.1,5,100],
+['Кабачок тушёный',40,1,2,4,150],['Баклажан запечённый',50,1,3,5,150],
+['Тыква запечённая',40,1,0.5,8,150],['Шампиньоны жареные',60,4,4,2,150],
+['Кукуруза консервированная',60,2,0.5,12,100],['Горошек консервированный',55,3.5,0.2,9,100],
+['Салат листовой',15,1.4,0.2,1.5,50],['Шпинат',23,2.9,0.4,2,100],
+['Грецкий орех',650,15,65,11,30],['Миндаль',600,21,53,13,30],['Фундук',650,15,63,10,30],
+['Кешью',550,18,44,30,30],['Арахис',560,26,49,10,30],
+['Семечки подсолнечные',580,21,53,10,30],['Арахисовая паста',590,25,50,20,20],
+['Масло растительное',890,0,99,0,10],['Масло оливковое',890,0,99,0,10],
+['Майонез',620,1,67,2.5,20],['Кетчуп',95,1.5,0.2,22,20],
+['Соевый соус',55,6,0,7,15],['Горчица',160,9,12,5,10],
+['Сухарики',390,11,5,75,40],['Печенье овсяное',440,6,15,70,50],
+['Печенье сахарное',420,6,12,72,50],['Пряник',350,5,3,76,50],
+['Торт бисквитный',350,5,15,50,120],['Чизкейк',320,6,20,28,120],
+['Шоколад молочный',550,7,32,58,40],['Шоколад горький',540,8,35,45,40],
+['Карамель',380,0,0.1,95,30],['Халва',520,12,30,54,40],['Мёд',320,0.8,0,80,20],
+['Варенье',260,0.4,0.2,65,30],['Сгущёнка',320,7,8.5,56,40],['Зефир',320,0.8,0,79,30],
+['Мармелад',300,0.4,0,75,30],['Сахар',400,0,0,100,10],
+['Чипсы',530,6,33,53,50],['Попкорн солёный',400,8,12,65,50],
+['Хлебцы',310,10,2,60,25],['Мюсли',380,10,8,65,50],['Гранола',450,9,18,62,50],
+['Протеиновый батончик',350,30,10,35,50],
+['Кофе чёрный',2,0.2,0,0,200],['Кофе с молоком',30,1.5,1.5,3,200],
+['Капучино',50,2.5,2.5,4,250],['Латте',55,3,3,5,300],['Чай без сахара',1,0,0,0,250],
+['Сок апельсиновый',45,0.7,0.1,10,250],['Сок яблочный',46,0.1,0.1,11,250],
+['Кола',42,0,0,10.6,330],['Энергетик',45,0,0,11,250],['Пиво светлое',43,0.5,0,3.6,500],
+['Вино сухое красное',68,0.2,0,2.6,150],['Вино сухое белое',66,0.1,0,2.6,150],
+['Компот',60,0.1,0,15,250],['Морс',40,0.1,0,10,250],
+['Протеиновый коктейль на воде',110,24,1.5,2,300]
+];
+
+const DIARY_KEY = 'diary.v1';
+const NORM_KEY = 'norm.v1';
+
+// localStorage может быть недоступен: приватный режим, отключённые данные сайта.
+// Приложение обязано работать и в этом случае, просто без сохранения между сессиями.
+let memoryFallback = {};
+function store(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+  catch (e) { memoryFallback[k] = v; return false; }
+}
+function restore(k, def) {
+  try {
+    const s = localStorage.getItem(k);
+    if (s) return JSON.parse(s);
+  } catch (e) { /* читаем из памяти ниже */ }
+  return k in memoryFallback ? memoryFallback[k] : def;
+}
+
+let dayOffset = 0;
+let mealType = 'Завтрак';
+let pending = null;
+let pendingPhoto = null;
+
+function dayKey(off) {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);          // полдень: страхует от сдвигов при переходе на летнее время
+  d.setDate(d.getDate() + off);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function dayLabel(off) {
+  if (off === 0) return 'Сегодня';
+  if (off === -1) return 'Вчера';
+  if (off === 1) return 'Завтра';
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() + off);
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+}
+
+function getDay(off) {
+  const all = restore(DIARY_KEY, {});
+  return all[dayKey(off)] || [];
+}
+
+function setDay(off, entries) {
+  const all = restore(DIARY_KEY, {});
+  all[dayKey(off)] = entries;
+  return store(DIARY_KEY, all);
+}
+
+function totals(entries) {
+  return entries.reduce((t, e) => {
+    const k = e.grams / 100;
+    t.kcal += e.per[0] * k; t.prot += e.per[1] * k;
+    t.fat += e.per[2] * k; t.carb += e.per[3] * k;
+    return t;
+  }, { kcal: 0, prot: 0, fat: 0, carb: 0 });
+}
+
+const MEAL_ORDER = ['Завтрак', 'Обед', 'Перекус', 'Ужин'];
+
+function renderDay() {
+  const entries = getDay(dayOffset);
+  const t = totals(entries);
+  const norm = restore(NORM_KEY, null);
+
+  document.getElementById('diary-date-label').textContent = dayLabel(dayOffset);
+  document.getElementById('eaten').textContent = Math.round(t.kcal);
+  document.getElementById('d-prot').textContent = Math.round(t.prot);
+  document.getElementById('d-fat').textContent = Math.round(t.fat);
+  document.getElementById('d-carb').textContent = Math.round(t.carb);
+
+  const sub = document.getElementById('eaten-sub');
+  const fill = document.getElementById('bar-fill');
+  if (norm && norm.kcal) {
+    const left = Math.round(norm.kcal - t.kcal);
+    sub.textContent = left >= 0
+      ? `из ${norm.kcal} ккал — осталось ${left}`
+      : `из ${norm.kcal} ккал — превышение на ${-left}`;
+    const pct = t.kcal / norm.kcal * 100;
+    fill.style.width = Math.min(100, pct) + '%';
+    fill.classList.toggle('over', pct > 100);
+  } else {
+    sub.textContent = 'норма не рассчитана — загляните во вкладку «Питание»';
+    fill.style.width = '0%';
+    fill.classList.remove('over');
+  }
+
+  const box = document.getElementById('entries');
+  if (!entries.length) {
+    box.innerHTML = '<p class="src" style="margin:0">Пока ничего не записано.</p>';
+    return;
+  }
+  box.innerHTML = MEAL_ORDER.filter(m => entries.some(e => e.meal === m)).map(m => {
+    const list = entries.filter(e => e.meal === m);
+    const mt = totals(list);
+    return `<div class="group-title">${m} · ${Math.round(mt.kcal)} ккал</div>` +
+      list.map(e => `<div class="entry">
+          <div class="entry-main">
+            ${e.photo ? `<img src="${e.photo}" alt="">` : ''}
+            <div>
+              <b>${esc(e.name)}</b>
+              <small>${e.grams} г · ${Math.round(e.per[0] * e.grams / 100)} ккал</small>
+            </div>
+          </div>
+          <button class="rm" data-id="${e.id}" aria-label="Удалить">×</button>
+        </div>`).join('');
+  }).join('');
+
+  box.querySelectorAll('.rm').forEach(b => {
+    b.onclick = () => {
+      setDay(dayOffset, getDay(dayOffset).filter(e => e.id !== b.dataset.id));
+      renderDay();
+      haptic();
+    };
+  });
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function diaryErr(msg) {
+  const b = document.getElementById('diary-err');
+  b.textContent = msg || '';
+  b.classList.toggle('hidden', !msg);
+}
+
+/* ---------- поиск ---------- */
+function localSearch(q) {
+  const s = q.trim().toLowerCase();
+  if (s.length < 2) return [];
+  const starts = [], has = [];
+  for (const d of DISHES) {
+    const n = d[0].toLowerCase();
+    if (n.startsWith(s)) starts.push(d);
+    else if (n.includes(s)) has.push(d);
+  }
+  return starts.concat(has).slice(0, 8);
+}
+
+function showHits(items) {
+  const box = document.getElementById('results');
+  if (!items.length) { box.innerHTML = ''; return; }
+  box.innerHTML = items.map((d, i) =>
+    `<button type="button" class="hit" data-i="${i}">
+       <span style="color:var(--text)">${esc(d[0])}</span>
+       <span>${Math.round(d[1])} ккал / 100 г</span>
+     </button>`).join('');
+  box.querySelectorAll('.hit').forEach(b => {
+    b.onclick = () => choose(items[+b.dataset.i]);
+  });
+}
+
+function choose(d) {
+  pending = d;
+  document.getElementById('search').value = d[0];
+  document.getElementById('results').innerHTML = `
+    <div class="portion">
+      <input type="text" class="fld" id="grams" inputmode="decimal" value="${d[5] || 100}" autocomplete="off">
+      <button class="cta" id="add-btn" style="width:auto">Добавить</button>
+    </div>
+    <p class="src" style="margin-top:6px">Граммы. Обычная порция — около ${d[5] || 100} г.</p>`;
+  document.getElementById('add-btn').onclick = addEntry;
+  document.getElementById('grams').focus();
+  haptic();
+}
+
+function addEntry() {
+  if (!pending) return;
+  const raw = document.getElementById('grams').value.trim().replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(raw) || +raw <= 0 || +raw > 5000)
+    return diaryErr('Укажите вес порции числом, от 1 до 5000 г');
+  diaryErr('');
+
+  const entry = {
+    id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
+    meal: mealType,
+    name: pending[0],
+    per: [pending[1], pending[2], pending[3], pending[4]],
+    grams: Math.round(+raw),
+    photo: pendingPhoto
+  };
+
+  const entries = getDay(dayOffset).concat([entry]);
+  if (!setDay(dayOffset, entries) && entry.photo) {
+    // чаще всего упираемся в квоту из-за фотографий — пробуем сохранить запись без снимка
+    entry.photo = null;
+    setDay(dayOffset, entries);
+    diaryErr('Запись сохранена, но фото не поместилось в память браузера.');
+  }
+
+  pending = null;
+  pendingPhoto = null;
+  document.getElementById('search').value = '';
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('photo-preview').classList.add('hidden');
+  document.getElementById('off-row').classList.add('hidden');
+  renderDay();
+  safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
+}
+
+/* ---------- Open Food Facts: упакованные продукты ---------- */
+async function searchOFF(q) {
+  const url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='
+    + encodeURIComponent(q)
+    + '&search_simple=1&action=process&json=1&page_size=12'
+    + '&fields=product_name,brands,nutriments';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('http ' + res.status);
+  const data = await res.json();
+  return (data.products || []).map(p => {
+    const n = p.nutriments || {};
+    const kcal = n['energy-kcal_100g'];
+    if (!p.product_name || !Number.isFinite(kcal)) return null;
+    const label = p.brands ? `${p.product_name} (${String(p.brands).split(',')[0].trim()})` : p.product_name;
+    return [label, kcal, n.proteins_100g || 0, n.fat_100g || 0, n.carbohydrates_100g || 0, 100];
+  }).filter(Boolean).slice(0, 8);
+}
+
+/* ---------- фото приёма пищи ---------- */
+function shrink(file, max = 320) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k);
+      c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', 0.7));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
+    img.src = url;
+  });
+}
+
+/* ---------- привязка событий ---------- */
+document.querySelectorAll('#meal-type button').forEach(b => {
+  b.onclick = () => {
+    mealType = b.dataset.meal;
+    document.querySelectorAll('#meal-type button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    haptic();
+  };
+});
+
+document.getElementById('day-prev').onclick = () => { dayOffset--; renderDay(); haptic(); };
+document.getElementById('day-next').onclick = () => { if (dayOffset < 0) { dayOffset++; renderDay(); haptic(); } };
+
+let searchTimer = null;
+document.getElementById('search').oninput = e => {
+  pending = null;
+  clearTimeout(searchTimer);
+  const q = e.target.value;
+  searchTimer = setTimeout(() => {
+    const hits = localSearch(q);
+    showHits(hits);
+    document.getElementById('off-row').classList.toggle('hidden', q.trim().length < 2);
+  }, 120);
+};
+
+document.getElementById('off-btn').onclick = async () => {
+  const q = document.getElementById('search').value.trim();
+  if (q.length < 2) return;
+  const btn = document.getElementById('off-btn');
+  btn.disabled = true;
+  btn.textContent = 'Ищу в базе продуктов…';
+  try {
+    const hits = await searchOFF(q);
+    if (!hits.length) diaryErr('В базе упакованных продуктов ничего не нашлось по этому запросу.');
+    else { diaryErr(''); showHits(hits); }
+  } catch (e) {
+    diaryErr('Не получилось обратиться к базе продуктов — нужен интернет.');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Поискать среди упакованных продуктов';
+};
+
+document.getElementById('photo-btn').onclick = () => document.getElementById('meal-photo').click();
+document.getElementById('meal-photo').onchange = async e => {
+  const f = e.target.files?.[0];
+  if (!f) return;
+  try {
+    pendingPhoto = await shrink(f);
+    const img = document.getElementById('photo-preview');
+    img.src = pendingPhoto;
+    img.classList.remove('hidden');
+    diaryErr('');
+  } catch (err) {
+    diaryErr('Не получилось прочитать снимок.');
+  }
+};
+
+renderDay();
+
+/* ========================= ПРОФИЛЬ ========================= */
+
+const PROFILE_KEY = 'profile.v1';
+const WEIGHTLOG_KEY = 'weightlog.v1';
+
+let profile = restore(PROFILE_KEY, null);
+
+function tgUser() {
+  try { return tg?.initDataUnsafe?.user || null; } catch (e) { return null; }
+}
+
+// Внутри Telegram имя, ник и аватар уже известны — не заставляем вводить руками
+if (!profile) {
+  const u = tgUser();
+  profile = {
+    name: u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : '',
+    nick: u && u.username ? '@' + u.username : '',
+    photo: null,
+    photoUrl: u && u.photo_url ? u.photo_url : null,
+    sex: 'male', age: null, height: null, weight: null, target: null, activity: 1.375
+  };
+}
+
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '—';
+  return parts.slice(0, 2).map(p => p[0].toUpperCase()).join('');
+}
+
+function renderAvatar() {
+  const box = document.getElementById('avatar-box');
+  const src = profile.photo || profile.photoUrl;
+  box.innerHTML = src
+    ? `<img class="avatar" src="${esc(src)}" alt="">`
+    : `<div class="avatar-ph">${esc(initials(profile.name))}</div>`;
+}
+
+function loadProfileForm() {
+  document.getElementById('p-name').value = profile.name || '';
+  document.getElementById('p-nick').value = profile.nick || '';
+  document.getElementById('p-age').value = profile.age ?? '';
+  document.getElementById('p-height').value = profile.height ?? '';
+  document.getElementById('p-weight').value = profile.weight ?? '';
+  document.getElementById('p-target').value = profile.target ?? '';
+
+  document.querySelectorAll('#p-sex button').forEach(b =>
+    b.setAttribute('aria-pressed', b.dataset.psex === profile.sex));
+  document.querySelectorAll('[data-pact]').forEach(b =>
+    b.setAttribute('aria-pressed', parseFloat(b.dataset.pact) === profile.activity));
+
+  renderAvatar();
+  renderProfileStats();
+}
+
+function profileErr(msg) {
+  const b = document.getElementById('p-err');
+  b.textContent = msg || '';
+  b.classList.toggle('hidden', !msg);
+}
+
+document.querySelectorAll('#p-sex button').forEach(b => {
+  b.onclick = () => {
+    profile.sex = b.dataset.psex;
+    document.querySelectorAll('#p-sex button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    haptic();
+  };
+});
+
+document.querySelectorAll('[data-pact]').forEach(b => {
+  b.onclick = () => {
+    profile.activity = parseFloat(b.dataset.pact);
+    document.querySelectorAll('[data-pact]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    haptic();
+  };
+});
+
+document.getElementById('avatar-btn').onclick = () => document.getElementById('avatar-file').click();
+document.getElementById('avatar-file').onchange = async e => {
+  const f = e.target.files?.[0];
+  if (!f) return;
+  try {
+    profile.photo = await shrink(f, 200);
+    renderAvatar();
+    profileErr('');
+  } catch (err) {
+    profileErr('Не получилось прочитать снимок.');
+  }
+};
+
+document.getElementById('p-save').onclick = () => {
+  const age = num('p-age'), height = num('p-height'), weight = num('p-weight');
+  const targetRaw = document.getElementById('p-target').value.trim();
+  const target = targetRaw ? num('p-target') : null;
+
+  mark('p-age', Number.isFinite(age) && age >= 14 && age <= 100);
+  mark('p-height', Number.isFinite(height) && height >= 120 && height <= 230);
+  mark('p-weight', Number.isFinite(weight) && weight >= 35 && weight <= 300);
+  mark('p-target', target === null || (Number.isFinite(target) && target >= 35 && target <= 300));
+
+  if (!Number.isFinite(age) || age < 14 || age > 100) return profileErr('Возраст: от 14 до 100 лет');
+  if (!Number.isFinite(height) || height < 120 || height > 230) return profileErr('Рост: от 120 до 230 см');
+  if (!Number.isFinite(weight) || weight < 35 || weight > 300) return profileErr('Вес: от 35 до 300 кг');
+  if (targetRaw && (!Number.isFinite(target) || target < 35 || target > 300))
+    return profileErr('Целевой вес: от 35 до 300 кг, или оставьте поле пустым');
+  profileErr('');
+
+  const prevWeight = profile.weight;
+  profile.name = document.getElementById('p-name').value.trim().slice(0, 60);
+  profile.nick = document.getElementById('p-nick').value.trim().slice(0, 40);
+  profile.age = age; profile.height = height; profile.weight = weight; profile.target = target;
+
+  if (!store(PROFILE_KEY, profile)) {
+    profileErr('Сохранил только на время этой сессии: браузер не даёт записать данные.');
+  }
+
+  // История веса — пригодится вкладке «Прогресс»
+  if (prevWeight !== weight) {
+    const log = restore(WEIGHTLOG_KEY, []);
+    log.push({ date: dayKey(0), weight });
+    store(WEIGHTLOG_KEY, log.slice(-400));
+  }
+
+  renderAvatar();
+  renderProfileStats();
+  refreshNutritionTab();
+
+  const saved = document.getElementById('p-saved');
+  saved.textContent = 'Сохранено';
+  setTimeout(() => { saved.textContent = ''; }, 2000);
+  safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
+};
+
+/* ---------- показатели ---------- */
+function bmi(w, h) { return w / Math.pow(h / 100, 2); }
+
+function bmiLabel(v) {
+  if (v < 18.5) return 'ниже нормы';
+  if (v < 25) return 'в норме';
+  if (v < 30) return 'избыточный вес';
+  return 'ожирение';
+}
+
+/* Справочные значения ВОЗ (2007) для 5–19 лет: ИМТ в кг/м² на границах
+   -2SD, -1SD, медианы, +1SD, +2SD по целым годам.
+   Взрослая шкала 18,5/25/30 к подросткам неприменима: у растущего организма
+   нормальный ИМТ меняется с возрастом, и один и тот же показатель в 13 и в 18 лет
+   означает разное. Таблица скачана с who.int и сверена по двум разным публикациям;
+   контрольная точка — к 19 годам границы сходятся со взрослыми (+1SD ≈ 25, +2SD ≈ 30),
+   так эта шкала и строилась. */
+const WHO_BMI = {
+  male: {
+    5: [13.0, 14.1, 15.3, 16.6, 18.3], 6: [13.0, 14.1, 15.3, 16.8, 18.5],
+    7: [13.1, 14.2, 15.5, 17.0, 19.0], 8: [13.3, 14.4, 15.7, 17.4, 19.7],
+    9: [13.5, 14.6, 16.0, 17.9, 20.5], 10: [13.7, 14.9, 16.4, 18.5, 21.4],
+    11: [14.1, 15.3, 16.9, 19.2, 22.5], 12: [14.5, 15.8, 17.5, 19.9, 23.6],
+    13: [14.9, 16.4, 18.2, 20.8, 24.8], 14: [15.5, 17.0, 19.0, 21.8, 25.9],
+    15: [16.0, 17.6, 19.8, 22.7, 27.0], 16: [16.5, 18.2, 20.5, 23.5, 27.9],
+    17: [16.9, 18.8, 21.1, 24.3, 28.6], 18: [17.3, 19.2, 21.7, 24.9, 29.2],
+    19: [17.6, 19.6, 22.2, 25.4, 29.7]
+  },
+  female: {
+    5: [12.7, 13.9, 15.2, 16.9, 18.9], 6: [12.7, 13.9, 15.3, 17.0, 19.2],
+    7: [12.7, 13.9, 15.4, 17.3, 19.8], 8: [12.9, 14.1, 15.7, 17.7, 20.6],
+    9: [13.1, 14.4, 16.0, 18.3, 21.5], 10: [13.5, 14.8, 16.6, 19.0, 22.6],
+    11: [13.9, 15.3, 17.2, 19.9, 23.7], 12: [14.4, 16.0, 18.0, 20.8, 25.0],
+    13: [14.9, 16.6, 18.8, 21.8, 26.2], 14: [15.4, 17.2, 19.6, 22.7, 27.3],
+    15: [15.9, 17.8, 20.2, 23.5, 28.2], 16: [16.2, 18.2, 20.7, 24.1, 28.9],
+    17: [16.4, 18.4, 21.0, 24.5, 29.3], 18: [16.4, 18.6, 21.3, 24.8, 29.5],
+    19: [16.5, 18.7, 21.4, 25.0, 29.7]
+  }
+};
+
+// Между целыми годами тянем линейно: в 14 с половиной граница лежит посередине
+function whoRefs(sex, age) {
+  const t = WHO_BMI[sex] || WHO_BMI.male;
+  const a = Math.min(19, Math.max(5, age));
+  const lo = Math.floor(a), hi = Math.min(19, lo + 1), k = a - lo;
+  const A = t[lo], B = t[hi] || t[lo];
+  return A.map((v, i) => v + (B[i] - v) * k);
+}
+
+// Категории ВОЗ для 5–19 лет: ниже -2SD, норма до +1SD, выше — избыток, выше +2SD — ожирение
+function whoCategory(v, r) {
+  if (v < r[0]) return 'дефицит массы тела';
+  if (v <= r[3]) return 'в норме';
+  if (v <= r[4]) return 'избыточный вес';
+  return 'ожирение';
+}
+
+const n1 = v => String(Math.round(v * 10) / 10).replace('.', ',');
+
+function renderProfileStats() {
+  const card = document.getElementById('p-stats');
+  const p = profile;
+  if (!p.height || !p.weight || !p.age) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+
+  const b = bmi(p.weight, p.height);
+  const teen = p.age < 19;
+  const refs = teen ? whoRefs(p.sex, p.age) : null;
+  const cat = teen ? whoCategory(b, refs) : bmiLabel(b);
+
+  const rows = [
+    ['Индекс массы тела', `${n1(b)}<small>${cat}</small>`],
+    ['Текущий вес', `${n1(p.weight)}<small>кг</small>`]
+  ];
+  if (p.target) {
+    rows.push(['Целевой вес', `${n1(p.target)}<small>кг</small>`]);
+    const diff = p.weight - p.target;
+    if (Math.abs(diff) < 0.5) rows.push(['До цели', 'вы на месте']);
+    else rows.push([diff > 0 ? 'Сбросить' : 'Набрать', `${n1(Math.abs(diff))}<small>кг</small>`]);
+  }
+
+  let extra = '';
+
+  if (teen) {
+    extra += `<div class="group-title" style="margin-top:16px">Границы для вашего возраста и пола</div>
+      <div class="kv"><span>Дефицит массы</span><b>ниже ${n1(refs[0])}</b></div>
+      <div class="kv"><span>Норма</span><b>${n1(refs[0])} – ${n1(refs[3])}</b></div>
+      <div class="kv"><span>Избыточный вес</span><b>выше ${n1(refs[3])}</b></div>
+      <div class="kv"><span>Ожирение</span><b>выше ${n1(refs[4])}</b></div>
+      <p class="src" style="margin-top:10px">Шкала ВОЗ для 5–19 лет. У подростков нормальный
+      индекс массы тела меняется с возрастом, поэтому взрослые границы 18,5 / 25 / 30 здесь не работают:
+      один и тот же ИМТ в 13 и в 18 лет означает разное. К 19 годам эта шкала сходится со взрослой.</p>`;
+  }
+
+  // Порог, ниже которого цель считается нездоровой: у подростков это -2SD, у взрослых 18,5
+  if (p.target) {
+    const tb = bmi(p.target, p.height);
+    const floorBmi = teen ? refs[0] : 18.5;
+    if (tb < floorBmi) {
+      extra += `<div class="warn">Такой целевой вес даёт индекс массы тела ${n1(tb)} — ниже границы нормы
+        (${n1(floorBmi)} для вашего возраста и пола). План под эту цель приложение считать не станет:
+        снижение ниже нормы бьёт по гормонам, костям и иммунитету, а форму не улучшает.
+        Если цель именно такая, это разговор с врачом, а не с калькулятором.</div>`;
+    }
+  }
+
+  document.getElementById('p-stats-body').innerHTML =
+    rows.map(([k, v]) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`).join('') + extra;
+}
+
+/* ---------- путь от текущего веса к целевому ---------- */
+
+const ACTIVITY_NAMES = {
+  '1.2': 'минимальная', '1.375': 'лёгкая', '1.55': 'средняя',
+  '1.725': 'высокая', '1.9': 'очень высокая'
+};
+
+/* Считаем по неделям, а не одной формулой. Причина: с падением веса падает и расход,
+   значит дефицит при той же калорийности становится меньше, и темп сам собой замедляется —
+   ровно как в жизни. Деление разницы весов на постоянные 0,5 кг в неделю дало бы
+   заниженный срок, и чем дальше цель, тем сильнее была бы ошибка.
+   1 кг жировой ткани ≈ 7700 ккал — стандартная оценка. */
+function project(p, goal) {
+  if (!p.target || !p.weight || !p.age || !p.height) return null;
+  const dir = p.target < p.weight ? -1 : p.target > p.weight ? 1 : 0;
+  if (dir === 0 || Math.abs(p.weight - p.target) < 0.3) return { done: true };
+  if ((dir < 0 && goal >= 0) || (dir > 0 && goal <= 0)) return { mismatch: true, dir };
+
+  let w = p.weight, weeks = 0, firstWeek = 0;
+  while (weeks < 260) {
+    const r = calculate({ sex: p.sex, age: p.age, height: p.height, weight: w, activity: p.activity, goal });
+    const daily = r.tdee - r.kcal;        // больше нуля — дефицит, меньше — профицит
+    if (Math.abs(daily) < 15) break;       // режим сошёлся с расходом, вес дальше не пойдёт
+    const dw = daily * 7 / 7700;
+    w -= dw;
+    weeks++;
+    if (weeks === 1) firstWeek = Math.abs(dw);
+    if (dir < 0 ? w <= p.target : w >= p.target) break;
+  }
+
+  const reached = dir < 0 ? w <= p.target + 0.15 : w >= p.target - 0.15;
+  return { weeks, reached, endWeight: w, perWeek: firstWeek, dir };
+}
+
+function renderPath(p, goal) {
+  const card = document.getElementById('path-card');
+  const body = document.getElementById('path-body');
+  const res = project(p, goal);
+
+  if (!res) {
+    card.classList.add('hidden');
+    return;
+  }
+  card.classList.remove('hidden');
+
+  const DISCLAIMER = `<p class="src" style="margin-top:12px">Это модель, а не обещание.
+    Расчёт исходит из того, что 1 кг жировой ткани ≈ 7700 ккал и что режим соблюдается каждый день.
+    В жизни вес идёт неровно: задерживается вода, меняется содержимое кишечника, организм
+    подстраивает расход под сниженное питание. Отклонение в несколько недель в любую сторону —
+    это норма, а не сбой. Ориентируйтесь на направление, а не на дату.</p>`;
+
+  if (res.done) {
+    body.innerHTML = `<p class="src" style="margin:0">Вы уже на целевом весе. Осталось удержать.</p>`;
+    return;
+  }
+
+  if (res.mismatch) {
+    body.innerHTML = `<div class="warn" style="margin-top:0">В профиле цель — ${
+      res.dir < 0 ? 'сбросить вес' : 'набрать вес'}, а выбран режим ${
+      goal > 0 ? 'набора массы' : goal < 0 ? 'снижения веса' : 'удержания'}.
+      С таким режимом до цели не дойти — поменяйте либо цель в профиле, либо режим выше.</div>`;
+    return;
+  }
+
+  if (!res.reached) {
+    body.innerHTML = `<div class="warn" style="margin-top:0">При этом режиме цель не достигается:
+      за пять лет вес выходит примерно на ${n1(res.endWeight)} кг и дальше не двигается.
+      Так и должно быть — по мере снижения веса падает и расход, дефицит сходит на нет.
+      Чтобы дойти до цели, понадобится больше активности, а не меньше еды.</div>` + DISCLAIMER;
+    return;
+  }
+
+  const finish = new Date();
+  finish.setDate(finish.getDate() + res.weeks * 7);
+  const months = res.weeks / 4.345;
+
+  const rows = [
+    ['Старт', `${n1(p.weight)}<small>кг</small>`],
+    ['Цель', `${n1(p.target)}<small>кг</small>`],
+    [res.dir < 0 ? 'Сбросить' : 'Набрать', `${n1(Math.abs(p.weight - p.target))}<small>кг</small>`],
+    ['Темп в начале', `${n1(res.perWeek)}<small>кг в неделю</small>`],
+    ['Срок', `${res.weeks}<small>нед. ≈ ${months < 1.5 ? 'месяц' : months.toFixed(0) + ' мес.'}</small>`],
+    ['Примерная дата', finish.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })]
+  ];
+
+  body.innerHTML = rows.map(([k, v]) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`).join('')
+    + `<p class="src" style="margin-top:12px">Темп указан для начала пути: чем меньше вес,
+       тем меньше расход, поэтому к концу снижение идёт медленнее. Это учтено в сроке —
+       он считается по неделям, а не делением разницы на постоянную скорость.</p>`
+    + DISCLAIMER;
+}
+
+/* ---------- связка профиля с расчётом ---------- */
+function refreshNutritionTab() {
+  const box = document.getElementById('profile-summary');
+  const p = profile;
+
+  if (!p.age || !p.height || !p.weight) {
+    box.innerHTML = `<label>Ваши данные</label>
+      <p class="src" style="margin:0 0 12px">Профиль пока не заполнен. Возраст, рост, вес и активность
+      берутся оттуда — чтобы не вводить их заново при каждом расчёте.</p>
+      <button class="cta" id="to-profile">Заполнить профиль</button>`;
+  } else {
+    box.innerHTML = `<label>Ваши данные</label>
+      <div class="kv"><span>Пол</span><b>${p.sex === 'male' ? 'мужской' : 'женский'}</b></div>
+      <div class="kv"><span>Возраст</span><b>${p.age}<small>лет</small></b></div>
+      <div class="kv"><span>Рост</span><b>${n1(p.height)}<small>см</small></b></div>
+      <div class="kv"><span>Вес</span><b>${n1(p.weight)}<small>кг</small></b></div>
+      ${p.target ? `<div class="kv"><span>Целевой вес</span><b>${n1(p.target)}<small>кг</small></b></div>` : ''}
+      <div class="kv"><span>Активность</span><b style="font-size:15px">${ACTIVITY_NAMES[String(p.activity)] || '—'}</b></div>
+      <button class="cta ghost" id="to-profile" style="margin-top:12px">Изменить в профиле</button>`;
+  }
+
+  document.getElementById('to-profile').onclick = () =>
+    document.querySelector('#tabbar button[data-tab="profile"]').click();
+
+  // Цель расчёта выводим из целевого веса: незачем спрашивать то, что уже известно
+  if (p.target && p.weight) {
+    const diff = p.weight - p.target;
+    const g = diff > 0.5 ? -0.15 : diff < -0.5 ? 0.1 : 0;
+    state.goal = g;
+    document.querySelectorAll('[data-goal]').forEach(b =>
+      b.setAttribute('aria-pressed', parseFloat(b.dataset.goal) === g));
+  }
+}
+
+// Обработчики вкладок назначены выше через onclick — вешаем отдельный слушатель,
+// чтобы не затереть их
+document.getElementById('tabbar').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]');
+  if (!b) return;
+  if (b.dataset.tab === 'profile') loadProfileForm();
+  if (b.dataset.tab === 'nutrition') refreshNutritionTab();
+});
+
+loadProfileForm();
+refreshNutritionTab();
+</script>
+
+<script type="module">
+/* =======================================================================
+   ЭКРАН ЛИЦА
+   Считаем геометрию по 478 точкам MediaPipe Face Landmarker и сравниваем
+   с опубликованными ориентирами. Оценки привлекательности здесь нет и не
+   будет: измеримы пропорции, а не красота.
+   ======================================================================= */
+
+// Свой обработчик вместо общего safeTg: модуль не должен зависеть
+// от порядка выполнения обычного скрипта
+const buzz = () => { try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success'); } catch (e) {} };
+
+const statusBox = document.getElementById('face-status');
+const pickBtn = document.getElementById('pick-btn');
+const fileInput = document.getElementById('photo');
+
+function say(msg, show = true) {
+  statusBox.textContent = msg;
+  statusBox.classList.toggle('hidden', !show);
+}
+
+let landmarker = null;
+let loading = null;
+
+async function getLandmarker() {
+  if (landmarker) return landmarker;
+  if (!loading) {
+    loading = (async () => {
+      const { FaceLandmarker, FilesetResolver } =
+        await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14');
+      const fileset = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+      landmarker = await FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+        },
+        runningMode: 'IMAGE',
+        numFaces: 1
+      });
+      return landmarker;
+    })();
+  }
+  return loading;
+}
+
+pickBtn.onclick = () => fileInput.click();
+
+fileInput.onchange = async () => {
+  const file = fileInput.files?.[0];
+  if (!file) return;
+
+  pickBtn.disabled = true;
+  say('Загружаю модель распознавания — в первый раз это занимает несколько секунд…');
+
+  let model;
+  try {
+    model = await getLandmarker();
+  } catch (e) {
+    pickBtn.disabled = false;
+    return say('Не удалось загрузить модель распознавания лиц. Нужен интернет; проверьте соединение и попробуйте ещё раз.');
+  }
+
+  let img;
+  try {
+    img = await loadImage(file);
+  } catch (e) {
+    pickBtn.disabled = false;
+    return say('Не получилось прочитать это изображение. Попробуйте другой файл.');
+  }
+
+  say('Ищу лицо…');
+  let res;
+  try {
+    res = model.detect(img);
+  } catch (e) {
+    pickBtn.disabled = false;
+    return say('Ошибка при анализе изображения. Попробуйте другое фото.');
+  }
+
+  pickBtn.disabled = false;
+
+  if (!res.faceLandmarks || !res.faceLandmarks.length) {
+    show(false);
+    return say('Лицо на фото не найдено. Нужен снимок анфас, где лицо занимает заметную часть кадра.');
+  }
+
+  say('', false);
+  render(img, res.faceLandmarks[0]);
+};
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
+    img.src = url;
+  });
+}
+
+function show(on) {
+  document.getElementById('face-canvas-card').classList.toggle('hidden', !on);
+  document.getElementById('face-metrics-card').classList.toggle('hidden', !on);
+  document.getElementById('face-sources-card').classList.toggle('hidden', !on);
+  document.getElementById('face-empty').classList.toggle('hidden', on);
+}
+
+/* ---------- индексы точек MediaPipe ---------- */
+const PT = {
+  eyeOutR: 33, eyeInR: 133,   // правый глаз человека (левая часть кадра)
+  eyeInL: 362, eyeOutL: 263,
+  cheekR: 234, cheekL: 454,   // ширина лица на уровне скул
+  jawR: 172, jawL: 397,       // углы нижней челюсти
+  chin: 152,                  // подбородок
+  brow: 168,                  // переносица (назион)
+  subnasale: 2,               // основание носа
+  lipTop: 0,                  // верхняя губа
+  hairline: 10,               // верх лба, приближение линии роста волос
+  mouthR: 61, mouthL: 291
+};
+
+const deg = r => r * 180 / Math.PI;
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+/* Разворачиваем лицо так, чтобы линия внутренних углов глаз стала
+   горизонтальной. Иначе любой наклон головы в кадре подмешивается
+   во все углы и делает их несопоставимыми между фото. */
+function normalize(lm, W, H) {
+  const raw = lm.map(p => ({ x: p.x * W, y: p.y * H }));
+  const a = raw[PT.eyeInR], b = raw[PT.eyeInL];
+  const roll = Math.atan2(b.y - a.y, b.x - a.x);
+  const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+  const cos = Math.cos(-roll), sin = Math.sin(-roll);
+  const pts = raw.map(p => {
+    const dx = p.x - cx, dy = p.y - cy;
+    return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+  });
+  return { raw, pts, rollDeg: deg(roll) };
+}
+
+function measure(lm, W, H) {
+  const { raw, pts, rollDeg } = normalize(lm, W, H);
+  const P = i => pts[i];
+
+  // наклон глазной щели: положительный — внешний угол выше внутреннего
+  const tilt = (outer, inner) =>
+    deg(Math.atan2(P(inner).y - P(outer).y, Math.abs(P(outer).x - P(inner).x)));
+
+  const tiltR = tilt(PT.eyeOutR, PT.eyeInR);
+  const tiltL = tilt(PT.eyeOutL, PT.eyeInL);
+
+  const cheekW = dist(P(PT.cheekR), P(PT.cheekL));
+  const jawW = dist(P(PT.jawR), P(PT.jawL));
+
+  // fWHR: бизигоматическая ширина / высота средней части лица (назион — верхняя губа)
+  const midHeight = Math.abs(P(PT.lipTop).y - P(PT.brow).y);
+  const fwhr = cheekW / midHeight;
+
+  // лицевые трети
+  const t1 = Math.abs(P(PT.brow).y - P(PT.hairline).y);
+  const t2 = Math.abs(P(PT.subnasale).y - P(PT.brow).y);
+  const t3 = Math.abs(P(PT.chin).y - P(PT.subnasale).y);
+  const tSum = t1 + t2 + t3;
+
+  // поворот головы: сравниваем расстояния от средней линии до краёв лица
+  const midX = (P(PT.eyeInR).x + P(PT.eyeInL).x) / 2;
+  const dR = Math.abs(midX - P(PT.cheekR).x);
+  const dL = Math.abs(P(PT.cheekL).x - midX);
+  const yaw = Math.abs(dL - dR) / ((dL + dR) / 2) * 100;
+
+  // расхождение сторон по нескольким парным точкам
+  const pairs = [[PT.cheekR, PT.cheekL], [PT.jawR, PT.jawL], [PT.eyeOutR, PT.eyeOutL], [PT.mouthR, PT.mouthL]];
+  const asym = pairs.map(([r, l]) => {
+    const a = Math.abs(midX - P(r).x), b = Math.abs(P(l).x - midX);
+    return Math.abs(a - b) / ((a + b) / 2) * 100;
+  }).reduce((s, v) => s + v, 0) / pairs.length;
+
+  return {
+    raw, pts, rollDeg, yaw, asym,
+    tiltR, tiltL,
+    fwhr,
+    cheekJaw: cheekW / jawW,
+    thirds: [t1 / tSum * 100, t2 / tSum * 100, t3 / tSum * 100],
+    faceW: cheekW,
+    faceH: Math.abs(P(PT.chin).y - P(PT.hairline).y)
+  };
+}
+
+/* ---------- ориентиры ----------
+   Полоса на шкале — не «правильное значение», а диапазон, вокруг которого
+   группируются измерения в опубликованных работах. Выход за полосу означает
+   «реже встречается», а не «хуже». */
+const METRICS = m => [
+  {
+    name: 'Кантальный наклон, правый глаз', value: m.tiltR, unit: '°', fmt: 1,
+    min: -8, max: 14, band: [2, 8],
+    note: 'Угол линии от внутреннего угла глаза к внешнему. Положительный — внешний угол выше. Ориентир приблизительный: единой нормативной выборки по этому углу мало, значения в работах разнятся.'
+  },
+  {
+    name: 'Кантальный наклон, левый глаз', value: m.tiltL, unit: '°', fmt: 1,
+    min: -8, max: 14, band: [2, 8],
+    note: 'Разница между глазами в 1–2° есть почти у всех и обычно незаметна.'
+  },
+  {
+    name: 'fWHR — ширина к высоте', value: m.fwhr, unit: '', fmt: 2,
+    min: 1.3, max: 2.6, band: [1.7, 2.1],
+    note: 'Бизигоматическая ширина, делённая на высоту средней части лица (переносица — верхняя губа). Часто подаётся как маркер полового диморфизма, но на выборке 2449 человек различия между полами оказались слабыми и противоречивыми.'
+  },
+  {
+    name: 'Скулы к челюсти', value: m.cheekJaw, unit: '', fmt: 2,
+    min: 1.0, max: 1.6, band: [1.2, 1.4],
+    note: 'Ширина лица на уровне скул, делённая на ширину между углами нижней челюсти. Чем ближе к единице, тем прямее контур лица.'
+  },
+  {
+    name: 'Верхняя треть', value: m.thirds[0], unit: '%', fmt: 1,
+    min: 20, max: 48, band: [30, 37],
+    note: 'Классический канон предписывает ровно по 33,3% на каждую треть, но исследования на реальных выборках показывают, что ему соответствует меньшинство людей. Верхняя граница здесь — линия роста волос, а она у всех разная, так что эта треть самая ненадёжная из трёх.'
+  },
+  {
+    name: 'Средняя треть', value: m.thirds[1], unit: '%', fmt: 1,
+    min: 20, max: 48, band: [30, 37],
+    note: 'От переносицы до основания носа.'
+  },
+  {
+    name: 'Нижняя треть', value: m.thirds[2], unit: '%', fmt: 1,
+    min: 20, max: 48, band: [30, 37],
+    note: 'От основания носа до подбородка. Единственная из трёх, которую заметно меняют ортодонтия и возраст.'
+  },
+  {
+    name: 'Расхождение сторон', value: m.asym, unit: '%', fmt: 1,
+    min: 0, max: 12, band: [0, 4],
+    note: 'Среднее расхождение парных точек относительно средней линии. Идеально симметричных лиц не существует; несколько процентов — обычное дело.'
+  }
+];
+
+const SOURCES = `
+fWHR и половой диморфизм — Kordsmeyer et al., PLOS ONE 2020, выборка 2449 человек:
+<a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0240284" target="_blank" rel="noopener">journals.plos.org</a>.
+Применимость неоклассических канонов к реальным популяциям — Head &amp; Face Medicine 2015:
+<a href="https://head-face-med.biomedcentral.com/articles/10.1186/s13005-015-0064-y" target="_blank" rel="noopener">head-face-med.biomedcentral.com</a>.
+Разметка лица — MediaPipe Face Landmarker, 478 точек, Google.
+Диапазоны на шкалах — сводные значения из перечисленных работ и классических канонов; там, где данные противоречивы, это указано в описании измерения.
+`;
+
+/* ---------- отрисовка ---------- */
+function render(img, lm) {
+  // Карточку показываем до замеров: у скрытого элемента clientWidth равен нулю,
+  // и холст получил бы нулевую ширину
+  show(true);
+  const canvas = document.getElementById('shot');
+  const maxW = Math.min(canvas.clientWidth || 340, 720);
+  const scale = maxW / img.naturalWidth;
+  const W = Math.round(img.naturalWidth * scale);
+  const H = Math.round(img.naturalHeight * scale);
+  canvas.width = W; canvas.height = H;
+
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, W, H);
+
+  const m = measure(lm, W, H);
+
+  // точки разметки
+  ctx.fillStyle = 'rgba(47,124,246,.55)';
+  for (const p of m.raw) { ctx.fillRect(p.x - 0.6, p.y - 0.6, 1.2, 1.2); }
+
+  const P = i => m.raw[i];
+  const line = (a, b, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.5, W / 320);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  };
+  line(P(PT.cheekR), P(PT.cheekL), '#ffd60a');
+  line(P(PT.jawR), P(PT.jawL), '#ff9f0a');
+  line(P(PT.eyeOutR), P(PT.eyeInR), '#30d158');
+  line(P(PT.eyeOutL), P(PT.eyeInL), '#30d158');
+  line(P(PT.hairline), P(PT.chin), 'rgba(255,255,255,.55)');
+
+  // качество кадра
+  const q = document.getElementById('quality');
+  const problems = [];
+  if (m.yaw > 8) problems.push(`голова повёрнута в сторону (расхождение сторон кадра ${m.yaw.toFixed(0)}%)`);
+  if (Math.abs(m.rollDeg) > 10) problems.push(`сильный наклон головы, ${Math.abs(m.rollDeg).toFixed(0)}° — он скомпенсирован расчётом, но точность падает`);
+  if (problems.length) {
+    q.innerHTML = 'Снимок не идеален: ' + problems.join('; ') + '. Числа ниже стоит считать приблизительными — переснимите строго анфас.';
+    q.classList.remove('hidden');
+  } else {
+    q.classList.add('hidden');
+  }
+
+  // измерения
+  document.getElementById('metrics').innerHTML = METRICS(m).map(x => {
+    const v = x.value;
+    const inBand = v >= x.band[0] && v <= x.band[1];
+    const clamp = Math.max(x.min, Math.min(x.max, v));
+    const pos = (clamp - x.min) / (x.max - x.min) * 100;
+    const bandL = (x.band[0] - x.min) / (x.max - x.min) * 100;
+    const bandW = (x.band[1] - x.band[0]) / (x.max - x.min) * 100;
+    const off = inBand ? 0 : (v < x.band[0] ? x.band[0] - v : v - x.band[1]);
+    return `<div class="metric">
+      <div class="metric-head">
+        <b>${x.name}</b>
+        <span class="metric-val">${v.toFixed(x.fmt)}${x.unit}</span>
+      </div>
+      <div class="scale">
+        <div class="band" style="left:${bandL}%;width:${bandW}%"></div>
+        <div class="pin" style="left:calc(${pos}% - 1.5px)"></div>
+      </div>
+      <div class="verdict ${inBand ? 'in' : 'out'}">
+        ${inBand
+          ? 'в пределах ориентира ' + x.band[0] + '–' + x.band[1] + x.unit
+          : 'вне ориентира ' + x.band[0] + '–' + x.band[1] + x.unit + ' на ' + off.toFixed(x.fmt) + x.unit}
+      </div>
+      <p style="margin-top:6px">${x.note}</p>
+    </div>`;
+  }).join('');
+
+  document.getElementById('sources').innerHTML = SOURCES;
+  buzz();
 }
 </script>
 </body>
