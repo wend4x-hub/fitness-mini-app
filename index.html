@@ -3,229 +3,313 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B0D10">
 <title>Телосложение и лицо</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js" crossorigin="anonymous"></script>
 <style>
+  /* ============================================================
+     Тёмная тема приложения. Цвета заданы жёстко, а не взяты из
+     Telegram: у приложения должно быть своё лицо, одинаковое у всех.
+     ============================================================ */
   :root{
-    --bg: var(--tg-theme-bg-color, #ffffff);
-    --text: var(--tg-theme-text-color, #16181c);
-    --hint: var(--tg-theme-hint-color, #8a8f98);
-    --card: var(--tg-theme-secondary-bg-color, #f3f4f6);
-    --accent: var(--tg-theme-button-color, #2f7cf6);
-    --accent-text: var(--tg-theme-button-text-color, #ffffff);
-    --bad: #e5484d;
-    --good: #30a46c;
-    --radius: 14px;
+    --bg:        #0B0D10;
+    --bg-soft:   #0E1216;
+    --card-a:    #171C22;
+    --card-b:    #12161B;
+    --line:      rgba(255,255,255,.065);
+    --line-2:    rgba(255,255,255,.10);
+    --text:      #F2F4F7;
+    --hint:      #8A93A0;
+    --accent:    #4F8CFF;
+    --accent-2:  #3E7BF0;
+    --good:      #30D19A;
+    --bad:       #FF6B6B;
+    --warn:      #FFB020;
+    --r:         18px;
+    --r-sm:      12px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{background:var(--bg)}
   body{
-    margin:0;padding:16px 16px 92px;
+    margin:0;padding:22px 16px 108px;position:relative;
     background:var(--bg);color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    font-size:16px;line-height:1.45;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
   }
-  h1{font-size:22px;margin:0 0 4px}
-  h2{font-size:16px;margin:22px 0 10px}
-  .sub{color:var(--hint);font-size:14px;margin:0 0 20px}
-  .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px}
-  label{display:block;font-size:13px;color:var(--hint);margin-bottom:6px}
+  /* мягкое свечение сверху — даёт глубину, стоит ноль */
+  body::before{
+    content:"";position:fixed;left:50%;top:-220px;width:560px;height:440px;
+    transform:translateX(-50%);pointer-events:none;z-index:0;
+    background:radial-gradient(closest-side, rgba(79,140,255,.16), transparent 70%);
+  }
+  main{position:relative;z-index:1}
+
+  h1{font-size:26px;line-height:1.2;font-weight:650;letter-spacing:-.02em;margin:0 0 6px}
+  .sub{color:var(--hint);font-size:14px;margin:0 0 22px}
+
+  .card{
+    background:linear-gradient(180deg,var(--card-a),var(--card-b));
+    border:1px solid var(--line);
+    border-radius:var(--r);padding:18px;margin-bottom:14px;
+  }
+
+  label{
+    display:block;font-size:11px;font-weight:650;color:var(--hint);
+    letter-spacing:.09em;text-transform:uppercase;margin-bottom:12px;
+  }
+
   input.fld{
-    width:100%;padding:12px;border:none;border-radius:10px;
-    background:var(--bg);color:var(--text);font-size:17px;font-family:inherit;
+    width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:var(--r-sm);
+    background:var(--bg-soft);color:var(--text);font-size:16px;font-family:inherit;
+    transition:border-color .15s;
   }
-  input.fld.bad{outline:2px solid var(--bad)}
+  input.fld::placeholder{color:#5A626D}
+  input.fld:focus{outline:none;border-color:rgba(79,140,255,.55)}
+  input.fld.bad{border-color:var(--bad)}
+
   .row{display:flex;gap:10px}
-  .row > div{flex:1}
-  .field{margin-bottom:14px}
+  .row > div{flex:1;min-width:0}
+  .field{margin-bottom:16px}
   .field:last-child{margin-bottom:0}
-  .seg{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:10px}
+
+  .seg{display:flex;gap:4px;background:var(--bg-soft);padding:4px;border-radius:14px;border:1px solid var(--line)}
   .seg button{
-    flex:1;padding:10px 4px;border:none;border-radius:8px;
-    background:transparent;color:var(--text);font-size:15px;font-family:inherit;cursor:pointer;
+    flex:1;padding:10px 4px;border:none;border-radius:10px;
+    background:transparent;color:var(--hint);font-size:14px;font-weight:550;
+    font-family:inherit;cursor:pointer;transition:background .15s,color .15s;
   }
-  .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-text);font-weight:600}
+  .seg button[aria-pressed="true"]{
+    background:linear-gradient(180deg,#5B95FF,var(--accent-2));color:#fff;
+    box-shadow:0 2px 10px rgba(79,140,255,.3);
+  }
+
   .opt{
-    display:block;width:100%;text-align:left;padding:12px;margin-bottom:6px;
-    border:none;border-radius:10px;background:var(--bg);color:var(--text);
-    font-size:15px;font-family:inherit;cursor:pointer;
+    display:block;width:100%;text-align:left;padding:13px 14px;margin-bottom:8px;
+    border:1px solid var(--line);border-radius:14px;background:var(--bg-soft);
+    color:var(--text);font-size:15px;font-family:inherit;cursor:pointer;
+    transition:border-color .15s,background .15s;
   }
   .opt:last-child{margin-bottom:0}
-  .opt small{display:block;color:var(--hint);font-size:12px;margin-top:2px}
-  .opt[aria-pressed="true"]{outline:2px solid var(--accent)}
-  .cta{
-    width:100%;padding:15px;border:none;border-radius:12px;
-    background:var(--accent);color:var(--accent-text);
-    font-size:17px;font-weight:600;font-family:inherit;cursor:pointer;
-  }
-  .cta.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
-  .cta[disabled]{opacity:.5}
-  .big{font-size:38px;font-weight:700;line-height:1.1;margin:2px 0}
-  .unit{font-size:15px;color:var(--hint);font-weight:400}
-  .stats{display:flex;gap:8px;margin-top:14px}
-  .stat{flex:1;background:var(--bg);border-radius:10px;padding:10px;text-align:center}
-  .stat b{display:block;font-size:19px}
-  .stat span{font-size:11px;color:var(--hint)}
-  .meal{padding:12px 0;border-bottom:1px solid var(--bg)}
-  .meal:last-child{border-bottom:none;padding-bottom:0}
-  .meal-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
-  .meal-head b{font-size:15px}
-  .meal-head span{font-size:13px;color:var(--hint)}
-  .meal p{margin:0;font-size:14px;color:var(--hint)}
-  .note{font-size:12px;color:var(--hint);margin-top:16px;line-height:1.5}
-  .hidden{display:none}
-  .warn{background:rgba(240,160,40,.14);border-radius:10px;padding:11px;font-size:13px;margin-top:12px}
-  .warn.ok{background:rgba(48,163,108,.14)}
+  .opt small{display:block;color:var(--hint);font-size:12.5px;margin-top:3px;line-height:1.4}
+  .opt[aria-pressed="true"]{border-color:rgba(79,140,255,.6);background:rgba(79,140,255,.09)}
 
-  /* нижнее меню */
+  .cta{
+    width:100%;padding:16px;border:none;border-radius:15px;
+    background:linear-gradient(180deg,#5B95FF,var(--accent-2));color:#fff;
+    font-size:16px;font-weight:650;font-family:inherit;cursor:pointer;
+    box-shadow:0 8px 24px rgba(79,140,255,.26);
+    transition:transform .1s,box-shadow .15s;
+  }
+  .cta:active{transform:translateY(1px);box-shadow:0 4px 14px rgba(79,140,255,.22)}
+  .cta.ghost{
+    background:transparent;color:var(--text);
+    border:1px solid var(--line-2);box-shadow:none;font-weight:550;
+  }
+  .cta[disabled]{opacity:.45;box-shadow:none}
+
+  .big{
+    font-size:52px;font-weight:300;line-height:1.05;letter-spacing:-.035em;margin:4px 0 0;
+    font-variant-numeric:tabular-nums;
+  }
+  .unit{font-size:15px;color:var(--hint);font-weight:400;letter-spacing:0}
+
+  .stats{display:flex;gap:8px;margin-top:16px}
+  .stat{
+    flex:1;background:rgba(255,255,255,.035);border:1px solid var(--line);
+    border-radius:14px;padding:12px 8px;text-align:center;
+  }
+  .stat b{display:block;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+  .stat span{font-size:10.5px;color:var(--hint);letter-spacing:.02em}
+
+  .meal{padding:14px 0;border-bottom:1px solid var(--line)}
+  .meal:last-child{border-bottom:none;padding-bottom:0}
+  .meal:first-child{padding-top:0}
+  .meal-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;gap:10px}
+  .meal-head b{font-size:15px;font-weight:600}
+  .meal-head span{font-size:13px;color:var(--hint);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .meal p{margin:0;font-size:13.5px;color:var(--hint);line-height:1.45}
+
+  .note{font-size:12px;color:var(--hint);margin-top:16px;line-height:1.55}
+  .src{font-size:12px;color:var(--hint);line-height:1.6}
+  .src a{color:var(--accent);text-decoration:none}
+  .hidden{display:none}
+
+  .warn{
+    background:rgba(255,176,32,.10);border:1px solid rgba(255,176,32,.26);
+    border-radius:var(--r-sm);padding:12px 13px;font-size:13px;line-height:1.5;margin-top:12px;
+  }
+  .warn.ok{background:rgba(48,209,154,.10);border-color:rgba(48,209,154,.26)}
+
+  /* ---------- нижнее меню ---------- */
   .tabbar{
-    position:fixed;left:0;right:0;bottom:0;display:flex;z-index:10;
-    background:var(--card);border-top:1px solid rgba(128,128,128,.22);
+    position:fixed;left:0;right:0;bottom:0;display:flex;z-index:20;
+    background:rgba(11,13,16,.88);
+    -webkit-backdrop-filter:saturate(180%) blur(22px);
+    backdrop-filter:saturate(180%) blur(22px);
+    border-top:1px solid var(--line);
     padding-bottom:env(safe-area-inset-bottom);
   }
   .tabbar button{
-    flex:1;background:none;border:none;padding:9px 2px 9px;cursor:pointer;
-    color:var(--hint);font-family:inherit;font-size:10.5px;line-height:1.2;
-    display:flex;flex-direction:column;align-items:center;gap:4px;
+    flex:1;background:none;border:none;padding:10px 2px 10px;cursor:pointer;
+    color:#6B7380;font-family:inherit;font-size:10px;font-weight:550;line-height:1.2;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    transition:color .15s;
   }
   .tabbar button[aria-selected="true"]{color:var(--accent)}
-  .tabbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 
-  /* экран лица */
-  #shot{width:100%;border-radius:12px;display:block;background:var(--bg)}
-  .metric{padding:14px 0;border-bottom:1px solid var(--bg)}
+  /* ---------- экран лица ---------- */
+  #shot{width:100%;border-radius:14px;display:block;background:var(--bg-soft);border:1px solid var(--line)}
+  .metric{padding:16px 0;border-bottom:1px solid var(--line)}
   .metric:last-child{border-bottom:none;padding-bottom:0}
+  .metric:first-child{padding-top:4px}
   .metric-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
   .metric-head b{font-size:14px;font-weight:600}
-  .metric-val{font-size:17px;font-weight:700;white-space:nowrap}
-  .scale{position:relative;height:6px;border-radius:3px;background:var(--bg);margin:10px 0 6px}
-  .scale .band{position:absolute;top:0;bottom:0;background:rgba(48,163,108,.45);border-radius:3px}
-  .scale .pin{position:absolute;top:-4px;width:3px;height:14px;border-radius:2px;background:var(--text)}
-  .metric p{margin:0;font-size:12px;color:var(--hint);line-height:1.5}
+  .metric-val{font-size:20px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .scale{position:relative;height:8px;border-radius:4px;background:rgba(255,255,255,.07);margin:12px 0 8px}
+  .scale .band{position:absolute;top:0;bottom:0;background:rgba(48,209,154,.5);border-radius:4px}
+  .scale .got{position:absolute;top:-2px;bottom:-2px;background:rgba(242,244,247,.34);border-radius:4px}
+  .scale .pin{
+    position:absolute;top:-4px;width:3px;height:16px;border-radius:2px;background:#fff;
+    box-shadow:0 0 0 2px rgba(11,13,16,.9);
+  }
+  .metric p{margin:0;font-size:12px;color:var(--hint);line-height:1.55}
   .verdict{font-size:12px;font-weight:600}
   .verdict.in{color:var(--good)}
   .verdict.out{color:var(--hint)}
-  .src{font-size:11.5px;color:var(--hint);line-height:1.6}
-  .src a{color:var(--hint)}
-  .empty{text-align:center;padding:48px 16px;color:var(--hint)}
-  .empty svg{width:44px;height:44px;stroke:currentColor;fill:none;stroke-width:1.3;margin-bottom:14px}
-  .empty b{display:block;color:var(--text);font-size:17px;margin-bottom:6px}
+  .spread{font-size:12px;color:var(--hint)}
+  .spread b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
 
-  /* дневник */
-  .daynav{display:flex;align-items:center;gap:10px}
-  .daynav > div{flex:1;text-align:center}
-  .daynav button{
-    width:38px;height:38px;flex:none;border:none;border-radius:10px;cursor:pointer;
-    background:var(--bg);color:var(--text);font-size:22px;font-family:inherit;line-height:1;
+  .empty{text-align:center;padding:56px 16px;color:var(--hint)}
+  .empty svg{
+    width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:1.4;
+    margin-bottom:16px;padding:13px;border-radius:50%;
+    background:rgba(255,255,255,.045);box-sizing:content-box;
   }
-  .bar{height:8px;border-radius:4px;background:var(--bg);margin:14px 0 0;overflow:hidden}
-  .bar > div{height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .25s}
-  .bar > div.over{background:var(--bad)}
-  #results{margin-top:8px}
+  .empty b{display:block;color:var(--text);font-size:18px;font-weight:600;margin-bottom:7px}
+
+  /* ---------- дневник ---------- */
+  .daynav{display:flex;align-items:center;gap:10px;margin:0 0 18px}
+  .daynav > div{flex:1;text-align:center;min-width:0}
+  .daynav b{font-size:21px;font-weight:650;letter-spacing:-.015em}
+  .daynav button:disabled{opacity:.3}
+  .daynav button{
+    width:40px;height:40px;flex:none;border:1px solid var(--line);border-radius:12px;cursor:pointer;
+    background:var(--bg-soft);color:var(--text);font-size:20px;font-family:inherit;line-height:1;
+  }
+  /* Сводка дня: три числа в строку, как в привычных дневниках питания */
+  .sum-row{display:flex;align-items:flex-start}
+  .sum-col{flex:1;text-align:center;position:relative}
+  .sum-col + .sum-col::before{
+    content:"";position:absolute;left:0;top:4px;bottom:4px;width:1px;background:var(--line);
+  }
+  .sum-col b{display:block;font-size:27px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .sum-col span{display:block;font-size:11px;color:var(--hint);margin-top:3px}
+  .sum-col.over b{color:var(--bad)}
+
+  .mbar{height:6px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}
+  .mbar > div{height:100%;width:0;border-radius:3px;transition:width .4s ease;background:var(--accent)}
+  .mbar > div.over{background:var(--bad)}
+
+  .mac-row{display:flex;gap:14px;margin-top:18px}
+  .mac-col{flex:1;min-width:0}
+  .mac-col .mac-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:6px}
+  .mac-col .mac-top span{font-size:11.5px;color:var(--hint)}
+  .mac-col .mac-top b{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* Приёмы пищи — всегда на экране, у каждого свой плюс */
+  .meal-sec{
+    background:linear-gradient(180deg,var(--card-a),var(--card-b));
+    border:1px solid var(--line);border-radius:var(--r);
+    padding:14px 16px;margin-bottom:10px;
+  }
+  .meal-sec-head{display:flex;align-items:center;gap:10px}
+  .meal-sec-head b{flex:1;font-size:15.5px;font-weight:600}
+  .meal-sec-head span{font-size:13px;color:var(--hint);font-variant-numeric:tabular-nums}
+  .add-btn{
+    flex:none;width:32px;height:32px;border-radius:10px;border:1px solid var(--line-2);
+    background:var(--bg-soft);color:var(--accent);font-size:20px;line-height:1;
+    font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .add-btn.on{background:var(--accent);color:#fff;border-color:transparent}
+  .meal-items{margin-top:4px}
+  .meal-slot:empty{display:none}
+
+  /* Графики: тонкие линии, сетка на тон от фона, подписи приглушённым текстом */
+  .chart{width:100%;height:auto;display:block;margin-top:18px;overflow:visible}
+  .chart .grid{stroke:rgba(255,255,255,.07);stroke-width:1}
+  .chart .ref{stroke:rgba(255,255,255,.22);stroke-width:1}
+  .chart .lbl{fill:#8A93A0;font-size:9px;font-family:inherit}
+  .chart .line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .chart .dot{fill:var(--accent);stroke:var(--card-b);stroke-width:2}
+  .chart .bar{fill:var(--accent)}
+  .chart .bar.over{fill:var(--warn)}
+  .wrow{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .wrow:last-child{border-bottom:none}
+  .wrow span{color:var(--hint);font-variant-numeric:tabular-nums}
+  .wrow b{font-weight:600;font-variant-numeric:tabular-nums}
+  .wrow i{font-style:normal;font-size:12px;color:var(--hint);margin-left:8px;font-variant-numeric:tabular-nums}
+  .meal-items:empty{display:none}
+  .adder{margin-top:12px;padding-top:14px;border-top:1px solid var(--line)}
+
+  .search-row{display:flex;gap:9px;align-items:stretch}
+  .search-row input{flex:1;min-width:0}
+  .icon-btn{
+    flex:none;width:50px;border-radius:var(--r-sm);border:1px solid var(--line);
+    background:var(--bg-soft);color:var(--hint);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:color .15s,border-color .15s;
+  }
+  .icon-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .icon-btn.on{color:var(--accent);border-color:rgba(79,140,255,.5)}
+  #results{margin-top:10px}
   .hit{
     display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;
-    padding:11px 12px;margin-top:6px;border:none;border-radius:10px;cursor:pointer;
-    background:var(--bg);color:var(--text);font-family:inherit;font-size:14px;text-align:left;
+    padding:12px 13px;margin-top:7px;border:1px solid var(--line);border-radius:12px;cursor:pointer;
+    background:var(--bg-soft);color:var(--text);font-family:inherit;font-size:14px;text-align:left;
   }
-  .hit span{color:var(--hint);font-size:12px;white-space:nowrap}
-  .portion{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .hit span{color:var(--hint);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .portion{display:flex;gap:8px;align-items:center;margin-top:10px}
   .portion input{flex:1}
-  .portion button{flex:none;padding:12px 16px}
-  .entry{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--bg)}
+  .portion button{flex:none;padding:13px 18px;font-size:15px}
+  .entry{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
   .entry:last-child{border-bottom:none;padding-bottom:0}
-  .entry b{font-size:14px;font-weight:600;display:block}
-  .entry small{color:var(--hint);font-size:12px}
+  .entry b{font-size:14.5px;font-weight:600;display:block}
+  .entry small{color:var(--hint);font-size:12.5px;font-variant-numeric:tabular-nums}
   .entry .rm{
-    flex:none;border:none;background:none;color:var(--hint);cursor:pointer;
-    font-size:20px;line-height:1;padding:0 2px;font-family:inherit;
+    flex:none;border:none;background:none;color:#5A626D;cursor:pointer;
+    font-size:22px;line-height:1;padding:0 2px;font-family:inherit;
   }
-  .entry img{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none}
-  .entry-main{display:flex;gap:10px;align-items:center;min-width:0}
-  .group-title{font-size:12px;color:var(--hint);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.4px}
+  .entry img{width:46px;height:46px;border-radius:11px;object-fit:cover;flex:none}
+  .entry-main{display:flex;gap:11px;align-items:center;min-width:0}
+  .group-title{
+    font-size:10.5px;color:var(--hint);margin:18px 0 2px;
+    text-transform:uppercase;letter-spacing:.09em;font-weight:650;
+  }
   .group-title:first-child{margin-top:0}
-  #photo-preview{width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-top:10px;display:block}
+  #photo-preview{width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-top:12px;display:block}
 
-  /* профиль */
-  .avatar-row{display:flex;gap:14px;align-items:center;margin-bottom:16px}
-  .avatar{
-    width:72px;height:72px;border-radius:50%;flex:none;object-fit:cover;
-    background:var(--bg);display:flex;align-items:center;justify-content:center;
+  /* ---------- профиль ---------- */
+  .avatar-row{display:flex;gap:16px;align-items:center;margin-bottom:20px}
+  .avatar{width:76px;height:76px;border-radius:50%;flex:none;object-fit:cover;border:1px solid var(--line-2)}
+  .avatar-ph{
+    width:76px;height:76px;border-radius:50%;flex:none;
+    background:linear-gradient(160deg,#243040,#171C22);border:1px solid var(--line-2);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--hint);font-size:26px;font-weight:600;
   }
-  .avatar-ph{width:72px;height:72px;border-radius:50%;flex:none;background:var(--bg);
-    display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:26px;font-weight:600}
-  .avatar-row .cta{padding:10px 14px;font-size:14px;width:auto}
-  .kv{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--bg);gap:12px}
+  .avatar-row .cta{padding:11px 16px;font-size:14px;width:auto}
+  .kv{display:flex;justify-content:space-between;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);gap:12px}
   .kv:last-child{border-bottom:none;padding-bottom:0}
-  .kv span{color:var(--hint);font-size:13px}
-  .kv b{font-size:16px;white-space:nowrap}
-  .kv b small{font-weight:400;color:var(--hint);font-size:12px;margin-left:4px}
+  .kv:first-child{padding-top:0}
+  .kv span{color:var(--hint);font-size:13.5px}
+  .kv b{font-size:16px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .kv b small{font-weight:400;color:var(--hint);font-size:12px;margin-left:5px}
 </style>
 </head>
 <body>
 
 <main>
-
-<!-- ================= ВКЛАДКА: ПИТАНИЕ ================= -->
-<section class="tab" id="tab-nutrition">
-
-  <div id="form-screen">
-    <h1>Расчёт питания</h1>
-    <p class="sub">Посчитаем норму калорий и составим меню</p>
-
-    <div class="card" id="profile-summary"></div>
-
-    <div class="card">
-      <label>Цель</label>
-      <button type="button" class="opt" data-goal="-0.15" aria-pressed="true">Снижение веса<small>Плавный темп, около 0,5 кг в неделю</small></button>
-      <button type="button" class="opt" data-goal="0" aria-pressed="false">Удержание веса<small>Сохранить текущую форму</small></button>
-      <button type="button" class="opt" data-goal="0.1" aria-pressed="false">Набор массы<small>С небольшим профицитом</small></button>
-    </div>
-
-    <div id="form-err" class="warn hidden" style="margin-bottom:12px"></div>
-    <button class="cta" id="calc-btn">Рассчитать</button>
-    <p class="note">Расчёт по формуле Миффлина–Сан Жеора. Это ориентир, а не медицинское назначение.</p>
-  </div>
-
-  <div id="result-screen" class="hidden">
-    <h1>Ваша норма</h1>
-    <p class="sub" id="goal-label"></p>
-
-    <div class="card">
-      <label>Калорийность в день</label>
-      <div class="big"><span id="kcal">0</span> <span class="unit">ккал</span></div>
-      <div class="stats">
-        <div class="stat"><b id="prot">0</b><span>белки, г</span></div>
-        <div class="stat"><b id="fat">0</b><span>жиры, г</span></div>
-        <div class="stat"><b id="carb">0</b><span>углеводы, г</span></div>
-      </div>
-      <div class="stats">
-        <div class="stat"><b id="bmr">0</b><span>метаболизм покоя</span></div>
-        <div class="stat"><b id="tdee">0</b><span>расход с активностью</span></div>
-      </div>
-      <div id="floor-warn" class="warn hidden"></div>
-    </div>
-
-    <div class="card">
-      <label>Примерное меню на день</label>
-      <div id="menu"></div>
-    </div>
-
-    <div class="card hidden" id="path-card">
-      <label>Путь к цели</label>
-      <div id="path-body"></div>
-    </div>
-
-    <div class="card">
-      <label>План на неделю</label>
-      <div id="plan"></div>
-    </div>
-
-    <button class="cta" id="send-btn" style="margin-bottom:10px">Отправить расчёт тренеру</button>
-    <div id="send-status" class="warn hidden" style="margin:0 0 10px"></div>
-    <button class="cta ghost" id="back-btn">Изменить данные</button>
-    <p class="note">Не опускайтесь ниже расчётной калорийности самостоятельно: слишком большой дефицит замедляет обмен веществ и приводит к срывам. При хронических заболеваниях, беременности или приёме лекарств план нужно согласовать с врачом.</p>
-  </div>
-
-</section>
 
 <!-- ================= ВКЛАДКА: ЛИЦО ================= -->
 <section class="tab hidden" id="tab-face">
@@ -233,13 +317,18 @@
   <p class="sub">Геометрия по фотографии и сравнение с опубликованными данными</p>
 
   <div class="card">
-    <label>Фотография</label>
+    <label>Серия снимков</label>
     <input type="file" id="photo" accept="image/*" class="hidden">
-    <button class="cta" id="pick-btn">Выбрать или снять фото</button>
+    <button class="cta" id="pick-btn">Снять первый кадр</button>
+    <button class="cta ghost hidden" id="reset-btn" style="margin-top:10px">Начать серию заново</button>
+    <div id="shot-count" class="src" style="margin-top:10px"></div>
     <p class="note" style="margin-top:12px">
-      Снимайте анфас, лицо прямо в камеру, нейтральное выражение, ровный свет.
-      Держите телефон на расстоянии вытянутой руки: с 20–30 см объектив заметно искажает
-      пропорции — нос шире, челюсть уже, и все числа поедут.
+      Одно фото не скажет, насколько числу можно верить. Сделайте три кадра подряд —
+      заново наводя камеру каждый раз, а не копируя один и тот же снимок, — и приложение
+      покажет не только значение, но и разброс между кадрами.
+      Снимайте анфас, нейтральное выражение, ровный свет, телефон на расстоянии вытянутой руки
+      и каждый раз примерно одинаково: с 20–30 см объектив искажает пропорции сильнее,
+      чем отличаются разные люди.
     </p>
   </div>
 
@@ -253,6 +342,12 @@
 
   <div class="card hidden" id="face-metrics-card">
     <label>Измерения</label>
+    <p class="src" style="margin:0 0 4px">
+      Крупное число — медиана по всем кадрам серии. Под шкалой — диапазон, в котором
+      значение гуляло между кадрами. Тёмная полоса на самой шкале показывает этот разброс,
+      зелёная — ориентир из исследований. Если тёмная полоса шире зелёной, на такое число
+      опираться нельзя: метод даёт больше шума, чем сама измеряемая разница.
+    </p>
     <div id="metrics"></div>
   </div>
 
@@ -269,51 +364,49 @@
 </section>
 
 <!-- ================= ЗАГЛУШКИ ================= -->
-<section class="tab hidden" id="tab-diary">
-  <h1>Дневник питания</h1>
-  <p class="sub" id="diary-date-label">Сегодня</p>
-
-  <div class="card">
-    <div class="daynav">
-      <button type="button" id="day-prev" aria-label="Предыдущий день">‹</button>
-      <div id="day-total">
-        <div class="big"><span id="eaten">0</span> <span class="unit">ккал</span></div>
-        <div id="eaten-sub" class="src">норма не рассчитана — загляните во вкладку «Питание»</div>
-      </div>
-      <button type="button" id="day-next" aria-label="Следующий день">›</button>
-    </div>
-    <div class="bar"><div id="bar-fill"></div></div>
-    <div class="stats">
-      <div class="stat"><b id="d-prot">0</b><span>белки, г</span></div>
-      <div class="stat"><b id="d-fat">0</b><span>жиры, г</span></div>
-      <div class="stat"><b id="d-carb">0</b><span>углеводы, г</span></div>
-    </div>
+<section class="tab" id="tab-diary">
+  <div class="daynav">
+    <button type="button" id="day-prev" aria-label="Предыдущий день">‹</button>
+    <div><b id="diary-date-label">Сегодня</b></div>
+    <button type="button" id="day-next" aria-label="Следующий день">›</button>
   </div>
 
   <div class="card">
-    <label>Добавить приём пищи</label>
-    <div class="seg" id="meal-type">
-      <button type="button" data-meal="Завтрак" aria-pressed="true">Завтрак</button>
-      <button type="button" data-meal="Обед" aria-pressed="false">Обед</button>
-      <button type="button" data-meal="Ужин" aria-pressed="false">Ужин</button>
-      <button type="button" data-meal="Перекус" aria-pressed="false">Перекус</button>
+    <div class="sum-row">
+      <div class="sum-col"><b id="eaten">0</b><span>съедено</span></div>
+      <div class="sum-col"><b id="left">—</b><span>осталось</span></div>
+      <div class="sum-col"><b id="goal-kcal">—</b><span>норма</span></div>
     </div>
-    <div style="margin-top:12px">
-      <input type="text" class="fld" id="search" autocomplete="off" placeholder="Что вы ели? Например: гречка">
+    <div class="mbar" style="margin-top:16px"><div id="kcal-bar"></div></div>
+    <div class="mac-row" id="macros"></div>
+    <div id="norm-hint" class="src" style="margin-top:14px"></div>
+  </div>
+
+  <div id="meals"></div>
+
+  <!-- Форма добавления одна на всё приложение и переезжает в тот приём пищи,
+       у которого нажали плюс: так не нужно отдельно выбирать, куда записывать. -->
+  <div id="adder" class="adder hidden">
+    <div class="search-row">
+      <input type="text" class="fld" id="search" autocomplete="off" placeholder="Что вы ели?">
+      <input type="file" id="meal-photo" accept="image/*" class="hidden">
+      <button type="button" class="icon-btn" id="photo-btn" aria-label="Приложить фото">
+        <svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 012-2h2l1.5-2h7L17 6h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
+      </button>
     </div>
     <div id="results"></div>
     <div id="off-row" class="hidden" style="margin-top:10px">
-      <button class="cta ghost" id="off-btn">Поискать среди упакованных продуктов</button>
+      <button class="cta ghost" id="off-btn">Искать среди упакованных продуктов</button>
     </div>
-    <input type="file" id="meal-photo" accept="image/*" class="hidden">
-    <button class="cta ghost" id="photo-btn" style="margin-top:10px">Приложить фото к записи</button>
     <img id="photo-preview" class="hidden" alt="">
     <div id="diary-err" class="warn hidden"></div>
   </div>
 
-  <div class="card" id="entries-card">
-    <label>Съедено за день</label>
-    <div id="entries"></div>
+  <div class="card hidden" id="menu-card">
+    <label>Что съесть сегодня</label>
+    <div id="menu"></div>
+    <p class="note" style="margin-top:14px">Подсказка под вашу норму, а не предписание.
+    Заменяйте на что угодно похожей калорийности.</p>
   </div>
 
   <p class="note">
@@ -324,10 +417,26 @@
 </section>
 
 <section class="tab hidden" id="tab-progress">
-  <div class="empty">
-    <svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>
-    <b>Прогресс</b>
-    График веса и объёмов, фото до и после, сравнение по неделям.<br>Скоро
+  <h1>Прогресс</h1>
+  <p class="sub">Как меняется вес и сколько вы едите</p>
+
+  <div class="card">
+    <label>Вес</label>
+    <div class="sum-row" id="w-stats"></div>
+    <div id="w-chart"></div>
+    <div class="portion" style="margin-top:16px">
+      <input type="text" class="fld" id="w-input" inputmode="decimal" autocomplete="off" placeholder="Записать вес, кг">
+      <button class="cta" id="w-add" style="width:auto">Записать</button>
+    </div>
+    <div id="w-err" class="warn hidden"></div>
+    <div id="w-list"></div>
+  </div>
+
+  <div class="card">
+    <label>Калории за две недели</label>
+    <div class="sum-row" id="k-stats"></div>
+    <div id="k-chart"></div>
+    <p class="note" id="k-note"></p>
   </div>
 </section>
 
@@ -396,22 +505,44 @@
   <button class="cta" id="p-save">Сохранить</button>
   <div id="p-saved" class="src" style="text-align:center;margin-top:10px"></div>
 
-  <div class="card hidden" id="p-stats" style="margin-top:14px">
+  <div class="card hidden" id="norm-card" style="margin-top:14px">
+    <label>Ваша норма</label>
+    <div class="big"><span id="kcal">0</span> <span class="unit">ккал в день</span></div>
+    <div class="src" id="goal-label" style="margin-top:6px"></div>
+    <div class="stats">
+      <div class="stat"><b id="prot">0</b><span>белки, г</span></div>
+      <div class="stat"><b id="fat">0</b><span>жиры, г</span></div>
+      <div class="stat"><b id="carb">0</b><span>углеводы, г</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="bmr">0</b><span>метаболизм покоя</span></div>
+      <div class="stat"><b id="tdee">0</b><span>расход с активностью</span></div>
+    </div>
+    <div id="floor-warn" class="warn hidden"></div>
+  </div>
+
+  <div class="card hidden" id="path-card">
+    <label>Путь к цели</label>
+    <div id="path-body"></div>
+  </div>
+
+  <div class="card hidden" id="p-stats">
     <label>Показатели</label>
     <div id="p-stats-body"></div>
   </div>
 
-  <p class="note">Данные хранятся только в вашем телефоне и никуда не отправляются.</p>
+  <button class="cta ghost hidden" id="send-btn">Отправить расчёт тренеру</button>
+  <div id="send-status" class="warn hidden"></div>
+
+  <p class="note">Расчёт по формуле Миффлина–Сан Жеора. Это ориентир, а не медицинское назначение.
+  При хронических заболеваниях, беременности или приёме лекарств план нужно согласовать с врачом.
+  Данные хранятся только в вашем телефоне и никуда не отправляются.</p>
 </section>
 
 </main>
 
 <nav class="tabbar" id="tabbar">
-  <button type="button" data-tab="nutrition" aria-selected="true">
-    <svg viewBox="0 0 24 24"><path d="M7 3v8a3 3 0 006 0V3M10 3v6M17 3c-1.5 2-2 4-2 7h4c0-3-.5-5-2-7zM17 10v11M10 14v7"/></svg>
-    Питание
-  </button>
-  <button type="button" data-tab="diary" aria-selected="false">
+  <button type="button" data-tab="diary" aria-selected="true">
     <svg viewBox="0 0 24 24"><path d="M5 4h12a2 2 0 012 2v14a2 2 0 01-2 2H5z"/><path d="M5 4a2 2 0 000 4h2M9 12h6M9 16h4"/></svg>
     Дневник
   </button>
@@ -431,11 +562,19 @@
 
 <script>
 const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
 
-// Любой вызов Telegram-API оборачиваем: в старых версиях клиента он бросает исключение
+// Любой вызов Telegram-API оборачиваем: в старых версиях клиента и вне Telegram
+// он бросает исключение, а необработанное исключение на старте убивает весь скрипт
 function safeTg(fn) { try { fn(); } catch (e) { /* метод не поддерживается этой версией */ } }
+
+safeTg(() => tg?.ready?.());
+safeTg(() => tg?.expand?.());
 function haptic() { safeTg(() => tg?.HapticFeedback?.selectionChanged?.()); }
+
+// Шапка Telegram над приложением красится отдельно: без этого сверху
+// остаётся светлая полоса, и тёмный экран выглядит обрезанным
+safeTg(() => tg?.setHeaderColor?.('#0B0D10'));
+safeTg(() => tg?.setBackgroundColor?.('#0B0D10'));
 
 /* ---------- вкладки ---------- */
 document.querySelectorAll('#tabbar button').forEach(btn => {
@@ -448,22 +587,14 @@ document.querySelectorAll('#tabbar button').forEach(btn => {
   };
 });
 
-/* ---------- состояние расчёта ---------- */
-// Пол, возраст, рост, вес и активность живут в профиле и только там.
-// Здесь остаётся единственное, что относится именно к расчёту, — выбор цели.
-const state = { goal: -0.15 };
-
-function bindOpts(attr, key, cast) {
-  const els = document.querySelectorAll(`[data-${attr}]`);
-  els.forEach(b => {
-    b.onclick = () => {
-      state[key] = cast(b.dataset[attr]);
-      els.forEach(x => x.setAttribute('aria-pressed', x === b));
-      haptic();
-    };
-  });
+/* Отдельного экрана расчёта больше нет. Всё, что ему было нужно, уже есть
+   в профиле: данные о себе и целевой вес. Цель режима выводится из него же —
+   спрашивать отдельно то, что однозначно следует из введённого, незачем. */
+function goalFromTarget(p) {
+  if (!p.target || !p.weight) return 0;
+  const diff = p.weight - p.target;
+  return diff > 0.5 ? -0.15 : diff < -0.5 ? 0.1 : 0;
 }
-bindOpts('goal', 'goal', parseFloat);
 
 // Принимаем и «67.4», и «67,4»: на русской раскладке запятая — это норма,
 // а input type="number" такое значение просто выбрасывает, возвращая пустую строку
@@ -546,32 +677,32 @@ function buildMenu(kcal, seed) {
   }));
 }
 
-const WEEK_PLAN = [
-  ['Понедельник', 'Силовая тренировка 45 мин + 8000 шагов'],
-  ['Вторник', 'Ходьба 40 мин, растяжка'],
-  ['Среда', 'Силовая тренировка 45 мин + 8000 шагов'],
-  ['Четверг', 'Отдых, лёгкая прогулка'],
-  ['Пятница', 'Силовая тренировка 45 мин'],
-  ['Суббота', 'Кардио 30 мин или активный отдых'],
-  ['Воскресенье', 'Отдых, замер веса и объёмов']
-];
 
 /* ---------- отрисовка ---------- */
 let lastResult = null;
 
-document.getElementById('calc-btn').onclick = () => {
-  document.getElementById('form-err').classList.add('hidden');
+/* Пересчёт нормы. Вызывается при сохранении профиля и при запуске —
+   отдельной кнопки «рассчитать» нет, потому что считать не из чего, кроме профиля. */
+function recalc() {
   const p = profile;
-  if (!p.age || !p.height || !p.weight)
-    return alertUser('Сначала заполните профиль — возраст, рост и вес берутся оттуда.');
+  const norm = document.getElementById('norm-card');
+  const send = document.getElementById('send-btn');
 
-  const { age, height, weight, sex, activity } = p;
-  const r = calculate({ sex, age, height, weight, activity, goal: state.goal });
-  lastResult = { ...r, age, height, weight, sex, activity, goal: state.goal };
-  renderPath(p, state.goal);
-  // норму подхватывает дневник, чтобы показывать остаток на день
+  if (!p.age || !p.height || !p.weight) {
+    norm.classList.add('hidden');
+    send.classList.add('hidden');
+    document.getElementById('menu-card').classList.add('hidden');
+    document.getElementById('path-card').classList.add('hidden');
+    return;
+  }
+
+  const goal = goalFromTarget(p);
+  const r = calculate({ sex: p.sex, age: p.age, height: p.height, weight: p.weight, activity: p.activity, goal });
+  lastResult = { ...r, age: p.age, height: p.height, weight: p.weight, sex: p.sex, activity: p.activity, goal };
   store(NORM_KEY, { kcal: r.kcal, prot: r.prot, fat: r.fat, carb: r.carb });
-  if (typeof renderDay === 'function') renderDay();
+
+  norm.classList.remove('hidden');
+  send.classList.remove('hidden');
 
   document.getElementById('kcal').textContent = r.kcal;
   document.getElementById('prot').textContent = r.prot;
@@ -581,7 +712,9 @@ document.getElementById('calc-btn').onclick = () => {
   document.getElementById('tdee').textContent = r.tdee;
 
   document.getElementById('goal-label').textContent =
-    state.goal < 0 ? 'Плавное снижение веса' : state.goal > 0 ? 'Набор массы' : 'Удержание веса';
+    goal < 0 ? 'Режим снижения веса — выведен из целевого веса'
+    : goal > 0 ? 'Режим набора массы — выведен из целевого веса'
+    : 'Режим удержания веса';
 
   const warn = document.getElementById('floor-warn');
   if (r.capped) {
@@ -589,29 +722,17 @@ document.getElementById('calc-btn').onclick = () => {
     warn.classList.remove('hidden');
   } else warn.classList.add('hidden');
 
-  document.getElementById('menu').innerHTML = buildMenu(r.kcal, Math.round(age + weight))
+  const menuCard = document.getElementById('menu-card');
+  document.getElementById('menu').innerHTML = buildMenu(r.kcal, Math.round(p.age + p.weight))
     .map(m => `<div class="meal">
         <div class="meal-head"><b>${m.name}</b><span>${m.kcal} ккал</span></div>
         <p>${m.dish}</p>
       </div>`).join('');
+  menuCard.classList.remove('hidden');
 
-  document.getElementById('plan').innerHTML = WEEK_PLAN
-    .map(([d, t]) => `<div class="meal">
-        <div class="meal-head"><b>${d}</b></div>
-        <p>${t}</p>
-      </div>`).join('');
-
-  document.getElementById('form-screen').classList.add('hidden');
-  document.getElementById('result-screen').classList.remove('hidden');
-  window.scrollTo(0, 0);
-  safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
-};
-
-document.getElementById('back-btn').onclick = () => {
-  document.getElementById('result-screen').classList.add('hidden');
-  document.getElementById('form-screen').classList.remove('hidden');
-  window.scrollTo(0, 0);
-};
+  renderPath(p, goal);
+  renderDay();
+}
 
 // Отправка данных в бота — бот получит их в message.web_app_data
 document.getElementById('send-btn').onclick = () => {
@@ -625,15 +746,6 @@ document.getElementById('send-btn').onclick = () => {
     status.classList.remove('hidden');
   }
 };
-
-// Показываем ошибку прямо в интерфейсе: tg.showAlert бросает исключение
-// в версиях клиента ниже 6.2 и вне Telegram, и обработчик клика умирает
-function alertUser(msg) {
-  const box = document.getElementById('form-err');
-  box.textContent = msg;
-  box.classList.remove('hidden');
-  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
 
 /* ======================= ДНЕВНИК ПИТАНИЯ ======================= */
 
@@ -805,7 +917,9 @@ function totals(entries) {
   }, { kcal: 0, prot: 0, fat: 0, carb: 0 });
 }
 
-const MEAL_ORDER = ['Завтрак', 'Обед', 'Перекус', 'Ужин'];
+const MEAL_ORDER = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
+
+let activeMeal = null;
 
 function renderDay() {
   const entries = getDay(dayOffset);
@@ -813,37 +927,60 @@ function renderDay() {
   const norm = restore(NORM_KEY, null);
 
   document.getElementById('diary-date-label').textContent = dayLabel(dayOffset);
-  document.getElementById('eaten').textContent = Math.round(t.kcal);
-  document.getElementById('d-prot').textContent = Math.round(t.prot);
-  document.getElementById('d-fat').textContent = Math.round(t.fat);
-  document.getElementById('d-carb').textContent = Math.round(t.carb);
+  document.getElementById('day-next').disabled = dayOffset >= 0;
 
-  const sub = document.getElementById('eaten-sub');
-  const fill = document.getElementById('bar-fill');
+  const eaten = Math.round(t.kcal);
+  document.getElementById('eaten').textContent = eaten;
+
+  const leftEl = document.getElementById('left');
+  const bar = document.getElementById('kcal-bar');
+  const hint = document.getElementById('norm-hint');
+
   if (norm && norm.kcal) {
-    const left = Math.round(norm.kcal - t.kcal);
-    sub.textContent = left >= 0
-      ? `из ${norm.kcal} ккал — осталось ${left}`
-      : `из ${norm.kcal} ккал — превышение на ${-left}`;
-    const pct = t.kcal / norm.kcal * 100;
-    fill.style.width = Math.min(100, pct) + '%';
-    fill.classList.toggle('over', pct > 100);
+    const left = norm.kcal - eaten;
+    document.getElementById('goal-kcal').textContent = norm.kcal;
+    leftEl.textContent = left >= 0 ? left : '+' + (-left);
+    leftEl.parentElement.classList.toggle('over', left < 0);
+    const pct = Math.min(100, t.kcal / norm.kcal * 100);
+    bar.style.width = pct.toFixed(1) + '%';
+    bar.classList.toggle('over', t.kcal > norm.kcal);
+    hint.textContent = left < 0 ? 'Норма превышена' : '';
   } else {
-    sub.textContent = 'норма не рассчитана — загляните во вкладку «Питание»';
-    fill.style.width = '0%';
-    fill.classList.remove('over');
+    document.getElementById('goal-kcal').textContent = '—';
+    leftEl.textContent = '—';
+    leftEl.parentElement.classList.remove('over');
+    bar.style.width = '0%';
+    bar.classList.remove('over');
+    hint.textContent = 'Норма не рассчитана — заполните профиль, и здесь появится остаток на день.';
   }
 
-  const box = document.getElementById('entries');
-  if (!entries.length) {
-    box.innerHTML = '<p class="src" style="margin:0">Пока ничего не записано.</p>';
-    return;
-  }
-  box.innerHTML = MEAL_ORDER.filter(m => entries.some(e => e.meal === m)).map(m => {
+  // Граммы сами по себе мало говорят: полоса показывает долю от нормы
+  document.getElementById('macros').innerHTML = [
+    ['Белки', t.prot, norm && norm.prot, 'var(--accent)'],
+    ['Жиры', t.fat, norm && norm.fat, 'var(--warn)'],
+    ['Углеводы', t.carb, norm && norm.carb, 'var(--good)']
+  ].map(([name, got, target, color]) => {
+    const pct = target ? Math.min(100, got / target * 100) : 0;
+    return `<div class="mac-col">
+      <div class="mac-top"><span>${name}</span><b>${Math.round(got)}${target ? '/' + target : ''}</b></div>
+      <div class="mbar"><div style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Приёмы пищи показываем все и всегда: пустой «Ужин» — это приглашение записать,
+  // а не отсутствующий раздел, который надо где-то искать
+  document.getElementById('meals').innerHTML = MEAL_ORDER.map(m => {
     const list = entries.filter(e => e.meal === m);
     const mt = totals(list);
-    return `<div class="group-title">${m} · ${Math.round(mt.kcal)} ккал</div>` +
-      list.map(e => `<div class="entry">
+    return `<div class="meal-sec" data-meal="${m}">
+      <div class="meal-sec-head">
+        <b>${m}</b>
+        <span>${list.length ? Math.round(mt.kcal) + ' ккал' : ''}</span>
+        <button type="button" class="add-btn${activeMeal === m ? ' on' : ''}" data-add="${m}"
+                aria-label="Добавить в «${m}»">${activeMeal === m ? '×' : '+'}</button>
+      </div>
+      <div class="meal-items">${list.map(e => `
+        <div class="entry">
           <div class="entry-main">
             ${e.photo ? `<img src="${e.photo}" alt="">` : ''}
             <div>
@@ -852,16 +989,52 @@ function renderDay() {
             </div>
           </div>
           <button class="rm" data-id="${e.id}" aria-label="Удалить">×</button>
-        </div>`).join('');
+        </div>`).join('')}</div>
+      <div class="meal-slot"></div>
+    </div>`;
   }).join('');
 
-  box.querySelectorAll('.rm').forEach(b => {
+  // Форма добавления — единственный экземпляр, переносим её в раскрытый приём пищи,
+  // чтобы не потерять фокус ввода и уже назначенные обработчики
+  const adder = document.getElementById('adder');
+  if (activeMeal) {
+    const slot = document.querySelector(`.meal-sec[data-meal="${activeMeal}"] .meal-slot`);
+    if (slot) { slot.appendChild(adder); adder.classList.remove('hidden'); }
+  } else {
+    document.getElementById('tab-diary').appendChild(adder);
+    adder.classList.add('hidden');
+  }
+
+  document.querySelectorAll('[data-add]').forEach(b => {
+    b.onclick = () => {
+      const m = b.dataset.add;
+      activeMeal = activeMeal === m ? null : m;
+      mealType = activeMeal || mealType;
+      if (!activeMeal) clearAdder();
+      renderDay();
+      if (activeMeal) document.getElementById('search').focus();
+      haptic();
+    };
+  });
+
+  document.querySelectorAll('.rm').forEach(b => {
     b.onclick = () => {
       setDay(dayOffset, getDay(dayOffset).filter(e => e.id !== b.dataset.id));
       renderDay();
       haptic();
     };
   });
+}
+
+function clearAdder() {
+  pending = null;
+  pendingPhoto = null;
+  document.getElementById('search').value = '';
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('photo-preview').classList.add('hidden');
+  document.getElementById('photo-btn').classList.remove('on');
+  document.getElementById('off-row').classList.add('hidden');
+  diaryErr('');
 }
 
 function esc(s) {
@@ -939,12 +1112,8 @@ function addEntry() {
     diaryErr('Запись сохранена, но фото не поместилось в память браузера.');
   }
 
-  pending = null;
-  pendingPhoto = null;
-  document.getElementById('search').value = '';
-  document.getElementById('results').innerHTML = '';
-  document.getElementById('photo-preview').classList.add('hidden');
-  document.getElementById('off-row').classList.add('hidden');
+  clearAdder();
+  activeMeal = null;
   renderDay();
   safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
 }
@@ -987,14 +1156,6 @@ function shrink(file, max = 320) {
 }
 
 /* ---------- привязка событий ---------- */
-document.querySelectorAll('#meal-type button').forEach(b => {
-  b.onclick = () => {
-    mealType = b.dataset.meal;
-    document.querySelectorAll('#meal-type button').forEach(x => x.setAttribute('aria-pressed', x === b));
-    haptic();
-  };
-});
-
 document.getElementById('day-prev').onclick = () => { dayOffset--; renderDay(); haptic(); };
 document.getElementById('day-next').onclick = () => { if (dayOffset < 0) { dayOffset++; renderDay(); haptic(); } };
 
@@ -1006,7 +1167,8 @@ document.getElementById('search').oninput = e => {
   searchTimer = setTimeout(() => {
     const hits = localSearch(q);
     showHits(hits);
-    document.getElementById('off-row').classList.toggle('hidden', q.trim().length < 2);
+    // Предлагаем внешнюю базу только когда своя не помогла — иначе кнопка мозолит глаза
+    document.getElementById('off-row').classList.toggle('hidden', q.trim().length < 2 || hits.length > 0);
   }, 120);
 };
 
@@ -1036,6 +1198,7 @@ document.getElementById('meal-photo').onchange = async e => {
     const img = document.getElementById('photo-preview');
     img.src = pendingPhoto;
     img.classList.remove('hidden');
+    document.getElementById('photo-btn').classList.add('on');
     diaryErr('');
   } catch (err) {
     diaryErr('Не получилось прочитать снимок.');
@@ -1168,7 +1331,7 @@ document.getElementById('p-save').onclick = () => {
 
   renderAvatar();
   renderProfileStats();
-  refreshNutritionTab();
+  recalc();
 
   const saved = document.getElementById('p-saved');
   saved.textContent = 'Сохранено';
@@ -1288,10 +1451,6 @@ function renderProfileStats() {
 
 /* ---------- путь от текущего веса к целевому ---------- */
 
-const ACTIVITY_NAMES = {
-  '1.2': 'минимальная', '1.375': 'лёгкая', '1.55': 'средняя',
-  '1.725': 'высокая', '1.9': 'очень высокая'
-};
 
 /* Считаем по неделям, а не одной формулой. Причина: с падением веса падает и расход,
    значит дефицит при той же калорийности становится меньше, и темп сам собой замедляется —
@@ -1378,39 +1537,213 @@ function renderPath(p, goal) {
     + DISCLAIMER;
 }
 
-/* ---------- связка профиля с расчётом ---------- */
-function refreshNutritionTab() {
-  const box = document.getElementById('profile-summary');
-  const p = profile;
 
-  if (!p.age || !p.height || !p.weight) {
-    box.innerHTML = `<label>Ваши данные</label>
-      <p class="src" style="margin:0 0 12px">Профиль пока не заполнен. Возраст, рост, вес и активность
-      берутся оттуда — чтобы не вводить их заново при каждом расчёте.</p>
-      <button class="cta" id="to-profile">Заполнить профиль</button>`;
-  } else {
-    box.innerHTML = `<label>Ваши данные</label>
-      <div class="kv"><span>Пол</span><b>${p.sex === 'male' ? 'мужской' : 'женский'}</b></div>
-      <div class="kv"><span>Возраст</span><b>${p.age}<small>лет</small></b></div>
-      <div class="kv"><span>Рост</span><b>${n1(p.height)}<small>см</small></b></div>
-      <div class="kv"><span>Вес</span><b>${n1(p.weight)}<small>кг</small></b></div>
-      ${p.target ? `<div class="kv"><span>Целевой вес</span><b>${n1(p.target)}<small>кг</small></b></div>` : ''}
-      <div class="kv"><span>Активность</span><b style="font-size:15px">${ACTIVITY_NAMES[String(p.activity)] || '—'}</b></div>
-      <button class="cta ghost" id="to-profile" style="margin-top:12px">Изменить в профиле</button>`;
+/* ========================= ПРОГРЕСС ========================= */
+
+/* Графики рисуем сами, без библиотек: один файл должен открываться где угодно.
+   Правила простые — тонкая линия, сетка на тон от фона, подписи только по краям.
+   Число у каждой точки не ставим: это шум, который никто не читает. */
+
+const CW = 320, CH = 132, PL = 36, PR = 12, PT = 14, PB = 22;
+const px = (i, n) => PL + (n < 2 ? (CW - PL - PR) / 2 : i * (CW - PL - PR) / (n - 1));
+
+function chartFrame(inner) {
+  // Без preserveAspectRatio="none": иначе на широком экране растягивается и текст,
+  // и кружки точек превращаются в эллипсы
+  return `<svg class="chart" viewBox="0 0 ${CW} ${CH}">${inner}</svg>`;
+}
+
+// Границы шкалы округляем до круглого шага — подпись должна быть читаемым числом,
+// а не «2722», случайно получившимся из максимума с запасом
+function niceUp(v, step) { return Math.ceil(v / step) * step; }
+function niceDown(v, step) { return Math.floor(v / step) * step; }
+
+function shortDate(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${+d}.${m}`;
+}
+
+/* Линия веса. Одна серия — легенда не нужна, заголовок карточки её называет.
+   Подписываем только последнюю точку: остальные читаются по списку ниже. */
+function weightChart(log, target) {
+  const n = log.length;
+  const vals = log.map(x => x.weight);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (target) { lo = Math.min(lo, target); hi = Math.max(hi, target); }
+  const pad = Math.max(0.5, (hi - lo) * 0.15);
+  hi = niceUp(hi + pad, 0.5); lo = niceDown(lo - pad, 0.5);
+  if (hi - lo < 1) { hi += 0.5; lo -= 0.5; }
+  const py = v => PT + (hi - v) / (hi - lo) * (CH - PT - PB);
+
+  // Подписи ставим ровно на линиях сетки и ровно теми значениями, которым линии соответствуют
+  let g = '';
+  [hi, (hi + lo) / 2, lo].forEach(v => {
+    const y = py(v);
+    g += `<line class="grid" x1="${PL}" y1="${y.toFixed(1)}" x2="${CW - PR}" y2="${y.toFixed(1)}"/>`;
+    g += `<text class="lbl" x="${PL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end">${n1(v)}</text>`;
+  });
+
+  if (target) {
+    const y = py(target);
+    g += `<line class="ref" x1="${PL}" y1="${y.toFixed(1)}" x2="${CW - PR}" y2="${y.toFixed(1)}"/>`;
+    g += `<text class="lbl" x="${CW - PR}" y="${(y - 5).toFixed(1)}" text-anchor="end">цель ${n1(target)}</text>`;
   }
 
-  document.getElementById('to-profile').onclick = () =>
-    document.querySelector('#tabbar button[data-tab="profile"]').click();
+  const pts = log.map((x, i) => `${px(i, n).toFixed(1)},${py(x.weight).toFixed(1)}`);
+  g += `<polyline class="line" points="${pts.join(' ')}"/>`;
 
-  // Цель расчёта выводим из целевого веса: незачем спрашивать то, что уже известно
-  if (p.target && p.weight) {
-    const diff = p.weight - p.target;
-    const g = diff > 0.5 ? -0.15 : diff < -0.5 ? 0.1 : 0;
-    state.goal = g;
-    document.querySelectorAll('[data-goal]').forEach(b =>
-      b.setAttribute('aria-pressed', parseFloat(b.dataset.goal) === g));
+  // Кружок ставим на каждой точке только когда их немного, иначе линия превращается в бусы
+  if (n <= 12) log.forEach((x, i) => {
+    g += `<circle class="dot" cx="${px(i, n).toFixed(1)}" cy="${py(x.weight).toFixed(1)}" r="3.2"/>`;
+  });
+  else g += `<circle class="dot" cx="${px(n - 1, n).toFixed(1)}" cy="${py(log[n - 1].weight).toFixed(1)}" r="3.6"/>`;
+
+  g += `<text class="lbl" x="${PL}" y="${CH - 6}">${shortDate(log[0].date)}</text>`;
+  if (n > 1) g += `<text class="lbl" x="${CW - PR}" y="${CH - 6}" text-anchor="end">${shortDate(log[n - 1].date)}</text>`;
+  return chartFrame(g);
+}
+
+/* Калории по дням. Столбик выше нормы красим предупреждающим цветом —
+   это состояние «перебор», а не ещё одна серия данных. */
+function kcalChart(days, norm) {
+  const n = days.length;
+  const peak = Math.max(norm || 0, ...days.map(d => d.kcal)) || 100;
+  const hi = niceUp(peak * 1.08, 250);
+  const py = v => PT + (1 - v / hi) * (CH - PT - PB);
+  const slot = (CW - PL - PR) / n;
+  const bw = Math.max(4, slot - 3);
+
+  let g = '';
+  [hi, hi / 2, 0].forEach(v => {
+    const y = py(v);
+    g += `<line class="grid" x1="${PL}" y1="${y.toFixed(1)}" x2="${CW - PR}" y2="${y.toFixed(1)}"/>`;
+    g += `<text class="lbl" x="${PL - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`;
+  });
+
+  days.forEach((d, i) => {
+    if (!d.kcal) return;
+    const x = PL + i * slot + (slot - bw) / 2;
+    const y = py(d.kcal), h = Math.max(2, CH - PB - y);
+    const over = norm && d.kcal > norm;
+    g += `<rect class="bar${over ? ' over' : ''}" x="${x.toFixed(1)}" y="${y.toFixed(1)}"
+      width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>`;
+  });
+
+  if (norm) {
+    const y = py(norm);
+    g += `<line class="ref" x1="${PL}" y1="${y.toFixed(1)}" x2="${CW - PR}" y2="${y.toFixed(1)}"/>`;
+    g += `<text class="lbl" x="${CW - PR}" y="${(y - 4).toFixed(1)}" text-anchor="end">норма ${norm}</text>`;
+  }
+
+  g += `<text class="lbl" x="${PL}" y="${CH - 6}">${shortDate(days[0].date)}</text>`;
+  g += `<text class="lbl" x="${CW - PR}" y="${CH - 6}" text-anchor="end">${shortDate(days[n - 1].date)}</text>`;
+  return chartFrame(g);
+}
+
+function emptyBlock(title, text) {
+  return `<div class="empty" style="padding:30px 0">
+    <svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>
+    <b>${title}</b>${text}</div>`;
+}
+
+function renderProgress() {
+  const log = restore(WEIGHTLOG_KEY, []);
+  const norm = restore(NORM_KEY, null);
+
+  /* ---- вес ---- */
+  const wStats = document.getElementById('w-stats');
+  const wChart = document.getElementById('w-chart');
+  const wList = document.getElementById('w-list');
+
+  if (!log.length) {
+    wStats.innerHTML = '';
+    wChart.innerHTML = emptyBlock('Веса пока нет', 'Запишите первый — и появится график');
+    wList.innerHTML = '';
+  } else {
+    const first = log[0].weight, last = log[log.length - 1].weight;
+    const diff = last - first;
+    const cols = [
+      ['Сейчас', n1(last)],
+      ['Изменение', (diff > 0 ? '+' : '') + n1(diff)]
+    ];
+    if (profile.target) cols.push(['До цели', n1(Math.abs(last - profile.target))]);
+    wStats.innerHTML = cols.map(([k, v]) =>
+      `<div class="sum-col"><b>${v}</b><span>${k}</span></div>`).join('');
+
+    wChart.innerHTML = log.length > 1
+      ? weightChart(log, profile.target)
+      : `<p class="src" style="margin-top:14px">Одна запись — графику нужна вторая. Взвешивайтесь в одно и то же время, лучше утром.</p>`;
+
+    // Список значений: график показывает форму, числа читаются здесь
+    wList.innerHTML = '<div class="group-title" style="margin-top:18px">Записи</div>' +
+      log.slice(-6).reverse().map((x, i, arr) => {
+        const prev = arr[i + 1];
+        const d = prev ? x.weight - prev.weight : null;
+        return `<div class="wrow">
+          <span>${shortDate(x.date)}</span>
+          <div><b>${n1(x.weight)} кг</b>${d !== null && Math.abs(d) >= 0.05
+            ? `<i>${d > 0 ? '+' : ''}${n1(d)}</i>` : ''}</div>
+        </div>`;
+      }).join('');
+  }
+
+  /* ---- калории ---- */
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const key = dayKey(-i);
+    const all = restore(DIARY_KEY, {});
+    days.push({ date: key, kcal: Math.round(totals(all[key] || []).kcal) });
+  }
+  const logged = days.filter(d => d.kcal > 0);
+  const kStats = document.getElementById('k-stats');
+  const kChart = document.getElementById('k-chart');
+  const kNote = document.getElementById('k-note');
+
+  if (!logged.length) {
+    kStats.innerHTML = '';
+    kChart.innerHTML = emptyBlock('Записей нет', 'Заполняйте дневник — здесь появится картина по дням');
+    kNote.textContent = '';
+  } else {
+    const avg = Math.round(logged.reduce((s, d) => s + d.kcal, 0) / logged.length);
+    const within = norm && norm.kcal ? logged.filter(d => d.kcal <= norm.kcal).length : null;
+    const cols = [['В среднем', avg], ['Дней записано', logged.length]];
+    if (within !== null) cols.push(['В пределах нормы', within]);
+    kStats.innerHTML = cols.map(([k, v]) =>
+      `<div class="sum-col"><b>${v}</b><span>${k}</span></div>`).join('');
+    kChart.innerHTML = kcalChart(days, norm && norm.kcal);
+    kNote.textContent = logged.length < 5
+      ? 'Пока мало данных: по нескольким дням о привычке судить рано. Числа за конкретный день смотрите в дневнике, переключая дату.'
+      : 'Числа за конкретный день смотрите в дневнике, переключая дату.';
   }
 }
+
+document.getElementById('w-add').onclick = () => {
+  const raw = document.getElementById('w-input').value.trim().replace(',', '.');
+  const err = document.getElementById('w-err');
+  if (!/^\d+(\.\d+)?$/.test(raw) || +raw < 35 || +raw > 300) {
+    err.textContent = 'Вес числом, от 35 до 300 кг';
+    err.classList.remove('hidden');
+    return;
+  }
+  err.classList.add('hidden');
+  const w = Math.round(+raw * 10) / 10;
+
+  // Одна запись на дату: перевзвесились — заменяем, а не плодим точки за тот же день
+  const log = restore(WEIGHTLOG_KEY, []).filter(x => x.date !== dayKey(0));
+  log.push({ date: dayKey(0), weight: w });
+  log.sort((a, b) => a.date < b.date ? -1 : 1);
+  store(WEIGHTLOG_KEY, log.slice(-400));
+
+  // Профиль — единственный источник правды по весу, обновляем и его
+  profile.weight = w;
+  store(PROFILE_KEY, profile);
+
+  document.getElementById('w-input').value = '';
+  renderProgress();
+  loadProfileForm();
+  recalc();
+  safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
+};
 
 // Обработчики вкладок назначены выше через onclick — вешаем отдельный слушатель,
 // чтобы не затереть их
@@ -1418,11 +1751,12 @@ document.getElementById('tabbar').addEventListener('click', e => {
   const b = e.target.closest('button[data-tab]');
   if (!b) return;
   if (b.dataset.tab === 'profile') loadProfileForm();
-  if (b.dataset.tab === 'nutrition') refreshNutritionTab();
+  if (b.dataset.tab === 'progress') renderProgress();
 });
 
 loadProfileForm();
-refreshNutritionTab();
+recalc();
+renderProgress();
 </script>
 
 <script type="module">
@@ -1507,8 +1841,9 @@ fileInput.onchange = async () => {
   pickBtn.disabled = false;
 
   if (!res.faceLandmarks || !res.faceLandmarks.length) {
-    show(false);
-    return say('Лицо на фото не найдено. Нужен снимок анфас, где лицо занимает заметную часть кадра.');
+    // Уже собранные кадры серии не выбрасываем из-за одного неудачного
+    if (!shots.length) show(false);
+    return say('На этом кадре лицо не найдено — он не засчитан. Нужен снимок анфас, где лицо занимает заметную часть кадра.');
   }
 
   say('', false);
@@ -1642,48 +1977,61 @@ function measure(lm, W, H) {
    Полоса на шкале — не «правильное значение», а диапазон, вокруг которого
    группируются измерения в опубликованных работах. Выход за полосу означает
    «реже встречается», а не «хуже». */
-const METRICS = m => [
+const METRIC_DEFS = [
   {
-    name: 'Кантальный наклон, правый глаз', value: m.tiltR, unit: '°', fmt: 1,
+    name: 'Кантальный наклон, правый глаз', key: 'tiltR', unit: '°', fmt: 1,
     min: -8, max: 14, band: [2, 8],
     note: 'Угол линии от внутреннего угла глаза к внешнему. Положительный — внешний угол выше. Ориентир приблизительный: единой нормативной выборки по этому углу мало, значения в работах разнятся.'
   },
   {
-    name: 'Кантальный наклон, левый глаз', value: m.tiltL, unit: '°', fmt: 1,
+    name: 'Кантальный наклон, левый глаз', key: 'tiltL', unit: '°', fmt: 1,
     min: -8, max: 14, band: [2, 8],
     note: 'Разница между глазами в 1–2° есть почти у всех и обычно незаметна.'
   },
   {
-    name: 'fWHR — ширина к высоте', value: m.fwhr, unit: '', fmt: 2,
+    name: 'fWHR — ширина к высоте', key: 'fwhr', unit: '', fmt: 2,
     min: 1.3, max: 2.6, band: [1.7, 2.1],
     note: 'Бизигоматическая ширина, делённая на высоту средней части лица (переносица — верхняя губа). Часто подаётся как маркер полового диморфизма, но на выборке 2449 человек различия между полами оказались слабыми и противоречивыми.'
   },
   {
-    name: 'Скулы к челюсти', value: m.cheekJaw, unit: '', fmt: 2,
+    name: 'Скулы к челюсти', key: 'cheekJaw', unit: '', fmt: 2,
     min: 1.0, max: 1.6, band: [1.2, 1.4],
     note: 'Ширина лица на уровне скул, делённая на ширину между углами нижней челюсти. Чем ближе к единице, тем прямее контур лица.'
   },
   {
-    name: 'Верхняя треть', value: m.thirds[0], unit: '%', fmt: 1,
+    name: 'Верхняя треть', key: 'thirds0', unit: '%', fmt: 1,
     min: 20, max: 48, band: [30, 37],
     note: 'Классический канон предписывает ровно по 33,3% на каждую треть, но исследования на реальных выборках показывают, что ему соответствует меньшинство людей. Верхняя граница здесь — линия роста волос, а она у всех разная, так что эта треть самая ненадёжная из трёх.'
   },
   {
-    name: 'Средняя треть', value: m.thirds[1], unit: '%', fmt: 1,
+    name: 'Средняя треть', key: 'thirds1', unit: '%', fmt: 1,
     min: 20, max: 48, band: [30, 37],
     note: 'От переносицы до основания носа.'
   },
   {
-    name: 'Нижняя треть', value: m.thirds[2], unit: '%', fmt: 1,
+    name: 'Нижняя треть', key: 'thirds2', unit: '%', fmt: 1,
     min: 20, max: 48, band: [30, 37],
     note: 'От основания носа до подбородка. Единственная из трёх, которую заметно меняют ортодонтия и возраст.'
   },
   {
-    name: 'Расхождение сторон', value: m.asym, unit: '%', fmt: 1,
+    name: 'Расхождение сторон', key: 'asym', unit: '%', fmt: 1,
     min: 0, max: 12, band: [0, 4],
     note: 'Среднее расхождение парных точек относительно средней линии лица. Считается уже после выравнивания, поэтому поворот головы в кадре его не завышает — это настоящая асимметрия, а не ракурс. Идеально симметричных лиц не существует, несколько процентов есть у всех.'
   }
 ];
+
+// Значение метрики из одного измерения
+function metricValue(m, key) {
+  return key.startsWith('thirds') ? m.thirds[+key.slice(6)] : m[key];
+}
+
+// Медиана устойчивее среднего: один смазанный кадр из трёх не утащит результат за собой
+function stats(values) {
+  const s = values.slice().sort((a, b) => a - b);
+  const n = s.length;
+  const median = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+  return { median, min: s[0], max: s[n - 1], spread: s[n - 1] - s[0], n };
+}
 
 const SOURCES = `
 fWHR и половой диморфизм — Kordsmeyer et al., PLOS ONE 2020, выборка 2449 человек:
@@ -1695,6 +2043,79 @@ fWHR и половой диморфизм — Kordsmeyer et al., PLOS ONE 2020, 
 `;
 
 /* ---------- отрисовка ---------- */
+
+// Измерения по всем кадрам серии. Одно число ничего не говорит о своей надёжности —
+// разброс между кадрами говорит.
+let shots = [];
+
+function renderCount() {
+  const box = document.getElementById('shot-count');
+  const btn = document.getElementById('pick-btn');
+  const reset = document.getElementById('reset-btn');
+  const n = shots.length;
+
+  btn.textContent = n === 0 ? 'Снять первый кадр' : `Добавить кадр (сейчас ${n})`;
+  reset.classList.toggle('hidden', n === 0);
+
+  if (n === 0) box.textContent = '';
+  else if (n === 1) box.innerHTML = 'Кадр один — разброс пока неизвестен. <b>Сделайте ещё два</b>, и станет видно, насколько числам можно верить.';
+  else if (n === 2) box.textContent = 'Два кадра. Третий сделает оценку разброса заметно надёжнее.';
+  else box.textContent = `Кадров в серии: ${n}. Показаны медиана и разброс между кадрами.`;
+}
+
+document.getElementById('reset-btn').onclick = () => {
+  shots = [];
+  show(false);
+  renderCount();
+  say('', false);
+};
+
+function renderMetrics() {
+  const n = shots.length;
+  document.getElementById('metrics').innerHTML = METRIC_DEFS.map(x => {
+    const st = stats(shots.map(m => metricValue(m, x.key)));
+    const v = st.median;
+    const inBand = v >= x.band[0] && v <= x.band[1];
+    const pos = t => (Math.max(x.min, Math.min(x.max, t)) - x.min) / (x.max - x.min) * 100;
+    const bandL = (x.band[0] - x.min) / (x.max - x.min) * 100;
+    const bandW = (x.band[1] - x.band[0]) / (x.max - x.min) * 100;
+    const off = inBand ? 0 : (v < x.band[0] ? x.band[0] - v : v - x.band[1]);
+
+    // Полоса измеренного разброса поверх шкалы: сразу видно, шире он ориентира или уже
+    const gotL = pos(st.min), gotW = Math.max(0.8, pos(st.max) - pos(st.min));
+
+    const bandWidth = x.band[1] - x.band[0];
+    let spreadLine;
+    if (n < 2) {
+      spreadLine = '<span class="spread">разброс неизвестен: кадр всего один</span>';
+    } else {
+      const wide = st.spread > bandWidth;
+      spreadLine = `<span class="spread">по ${n} ${n === 2 ? 'кадрам' : 'кадрам'}:
+        <b>${st.min.toFixed(x.fmt)}–${st.max.toFixed(x.fmt)}${x.unit}</b>${
+        wide ? ' — разброс шире самого ориентира, число неустойчиво' : ''}</span>`;
+    }
+
+    return `<div class="metric">
+      <div class="metric-head">
+        <b>${x.name}</b>
+        <span class="metric-val">${v.toFixed(x.fmt)}${x.unit}</span>
+      </div>
+      <div class="scale">
+        <div class="band" style="left:${bandL}%;width:${bandW}%"></div>
+        ${n >= 2 ? `<div class="got" style="left:${gotL}%;width:${gotW}%"></div>` : ''}
+        <div class="pin" style="left:calc(${pos(v)}% - 1.5px)"></div>
+      </div>
+      <div style="margin-bottom:6px">${spreadLine}</div>
+      <div class="verdict ${inBand ? 'in' : 'out'}">
+        ${inBand
+          ? 'медиана в пределах ориентира ' + x.band[0] + '–' + x.band[1] + x.unit
+          : 'медиана вне ориентира ' + x.band[0] + '–' + x.band[1] + x.unit + ' на ' + off.toFixed(x.fmt) + x.unit}
+      </div>
+      <p style="margin-top:6px">${x.note}</p>
+    </div>`;
+  }).join('');
+}
+
 function render(img, lm) {
   // Карточку показываем до замеров: у скрытого элемента clientWidth равен нулю,
   // и холст получил бы нулевую ширину
@@ -1751,36 +2172,15 @@ function render(img, lm) {
     q.classList.add('ok');
   }
 
-  // измерения
-  document.getElementById('metrics').innerHTML = METRICS(m).map(x => {
-    const v = x.value;
-    const inBand = v >= x.band[0] && v <= x.band[1];
-    const clamp = Math.max(x.min, Math.min(x.max, v));
-    const pos = (clamp - x.min) / (x.max - x.min) * 100;
-    const bandL = (x.band[0] - x.min) / (x.max - x.min) * 100;
-    const bandW = (x.band[1] - x.band[0]) / (x.max - x.min) * 100;
-    const off = inBand ? 0 : (v < x.band[0] ? x.band[0] - v : v - x.band[1]);
-    return `<div class="metric">
-      <div class="metric-head">
-        <b>${x.name}</b>
-        <span class="metric-val">${v.toFixed(x.fmt)}${x.unit}</span>
-      </div>
-      <div class="scale">
-        <div class="band" style="left:${bandL}%;width:${bandW}%"></div>
-        <div class="pin" style="left:calc(${pos}% - 1.5px)"></div>
-      </div>
-      <div class="verdict ${inBand ? 'in' : 'out'}">
-        ${inBand
-          ? 'в пределах ориентира ' + x.band[0] + '–' + x.band[1] + x.unit
-          : 'вне ориентира ' + x.band[0] + '–' + x.band[1] + x.unit + ' на ' + off.toFixed(x.fmt) + x.unit}
-      </div>
-      <p style="margin-top:6px">${x.note}</p>
-    </div>`;
-  }).join('');
+  shots.push(m);
+  renderMetrics();
+  renderCount();
 
   document.getElementById('sources').innerHTML = SOURCES;
   buzz();
 }
+
+renderCount();
 </script>
 </body>
 </html>
