@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0B0D10">
 <title>Телосложение и лицо</title>
+<!-- Установка на домашний экран и работа без интернета. Файлы лежат рядом;
+     если их не выложить, приложение работает ровно как раньше, просто
+     без этих двух возможностей — ни одной ошибки человек не увидит. -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://telegram.org/js/telegram-web-app.js" crossorigin="anonymous"></script>
 <style>
   /* ============================================================
@@ -59,11 +66,18 @@
     letter-spacing:.09em;text-transform:uppercase;margin-bottom:12px;
   }
 
-  input.fld{
+  input.fld, select.fld{
     width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:var(--r-sm);
     background:var(--bg-soft);color:var(--text);font-size:16px;font-family:inherit;
     transition:border-color .15s;
   }
+  /* Свою стрелку рисуем сами: системная в тёмной теме выглядит чужеродно,
+     а без неё поле неотличимо от обычного ввода и по нему не догадаешься нажать. */
+  select.fld{
+    appearance:none;-webkit-appearance:none;padding-right:36px;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A93A0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
+  select.fld option{background:#161B22;color:var(--text)}
   input.fld::placeholder{color:#5A626D}
   input.fld:focus{outline:none;border-color:rgba(79,140,255,.55)}
   input.fld.bad{border-color:var(--bad)}
@@ -236,6 +250,33 @@
   .meal-items{margin-top:4px}
   .meal-slot:empty{display:none}
 
+  .streak{
+    display:inline-block;margin-left:9px;padding:3px 9px;border-radius:999px;
+    background:rgba(255,176,32,.14);border:1px solid rgba(255,176,32,.3);
+    color:var(--warn);font-size:12px;font-weight:650;vertical-align:middle;
+  }
+  .streak:empty{display:none}
+
+  .water{display:flex;align-items:center;gap:12px}
+  .water button{
+    width:40px;height:40px;flex:none;border:1px solid var(--line);border-radius:12px;cursor:pointer;
+    background:var(--bg-soft);color:var(--text);font-size:20px;font-family:inherit;line-height:1;
+  }
+  .glasses{flex:1;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  .glass{
+    width:18px;height:24px;border-radius:3px 3px 6px 6px;
+    border:1.5px solid rgba(79,140,255,.45);background:transparent;
+  }
+  .glass.on{background:var(--accent);border-color:var(--accent)}
+
+  #scan-box{margin-top:12px}
+  #scan-video{width:100%;max-height:230px;object-fit:cover;border-radius:12px;background:#000;display:block}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+  .chip{
+    padding:8px 12px;border:1px solid var(--line);border-radius:999px;cursor:pointer;
+    background:var(--bg-soft);color:var(--text);font-family:inherit;font-size:13px;
+  }
+
   /* Графики: тонкие линии, сетка на тон от фона, подписи приглушённым текстом */
   .chart{width:100%;height:auto;display:block;margin-top:18px;overflow:visible}
   .chart .grid{stroke:rgba(255,255,255,.07);stroke-width:1}
@@ -288,6 +329,52 @@
   }
   .group-title:first-child{margin-top:0}
   #photo-preview{width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-top:12px;display:block}
+  .tag{
+    font-style:normal;font-size:10.5px;letter-spacing:.03em;color:var(--accent);
+    border:1px solid rgba(79,140,255,.45);border-radius:6px;padding:1px 5px;margin-left:7px;
+    vertical-align:1px}
+  #own-box{margin-top:6px}
+  #ing-hits{margin-top:8px}
+  .ing{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .ing:last-child{border-bottom:none}
+  .ing span{color:var(--hint);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ing .rm{
+    flex:none;width:28px;height:28px;border-radius:9px;border:1px solid var(--line-2);
+    background:transparent;color:var(--hint);font-size:15px;line-height:1}
+  #ing-list:empty{display:none}
+  #own-list{margin-top:20px}
+  #own-list:empty{display:none}
+
+  /* ---------- фото «до/после» ---------- */
+  .cam-wrap{position:relative;border-radius:14px;overflow:hidden;background:#000;margin-top:12px}
+  #cam-video{width:100%;max-height:420px;object-fit:cover;display:block}
+  #cam-ghost{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+  /* Сетка третей: по ней проще встать так же, как в прошлый раз */
+  .cam-grid{position:absolute;inset:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.22) 1px, transparent 1px);
+    background-size:100% 33.34%, 33.34% 100%}
+  .ba{display:flex;gap:10px;margin-top:18px}
+  .ba figure{flex:1;min-width:0;margin:0}
+  .ba img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;display:block;
+    border:1px solid var(--line)}
+  .ba figcaption{font-size:11.5px;color:var(--hint);margin-top:7px;text-align:center;
+    font-variant-numeric:tabular-nums}
+  .ba figcaption b{display:block;color:var(--text);font-size:13px;font-weight:600}
+  .ba-sel{display:flex;gap:10px;margin-top:12px}
+  .ba-sel select{flex:1;min-width:0}
+  .thumbs{display:flex;gap:8px;overflow-x:auto;margin-top:18px;padding-bottom:4px}
+  .thumb{position:relative;flex:none;width:72px}
+  .thumb img{width:72px;height:96px;object-fit:cover;border-radius:10px;display:block;
+    border:1px solid var(--line)}
+  .thumb span{display:block;font-size:10.5px;color:var(--hint);text-align:center;margin-top:5px;
+    font-variant-numeric:tabular-nums}
+  .thumb button{
+    position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:7px;
+    border:none;background:rgba(0,0,0,.62);color:#fff;font-size:13px;line-height:1;padding:0}
+  #card-preview{width:100%;border-radius:14px;margin-top:16px;display:block;border:1px solid var(--line)}
 
   /* ---------- профиль ---------- */
   .avatar-row{display:flex;gap:16px;align-items:center;margin-bottom:20px}
@@ -367,7 +454,7 @@
 <section class="tab" id="tab-diary">
   <div class="daynav">
     <button type="button" id="day-prev" aria-label="Предыдущий день">‹</button>
-    <div><b id="diary-date-label">Сегодня</b></div>
+    <div><b id="diary-date-label">Сегодня</b><span id="streak" class="streak"></span></div>
     <button type="button" id="day-next" aria-label="Следующий день">›</button>
   </div>
 
@@ -382,6 +469,18 @@
     <div id="norm-hint" class="src" style="margin-top:14px"></div>
   </div>
 
+  <div class="card">
+    <label>Вода</label>
+    <div class="water">
+      <button type="button" id="water-minus" aria-label="Убрать стакан">−</button>
+      <div class="glasses" id="glasses"></div>
+      <button type="button" id="water-plus" aria-label="Добавить стакан">+</button>
+    </div>
+    <div class="src" id="water-note" style="margin-top:10px"></div>
+  </div>
+
+  <div id="copy-row"></div>
+
   <div id="meals"></div>
 
   <!-- Форма добавления одна на всё приложение и переезжает в тот приём пищи,
@@ -390,14 +489,79 @@
     <div class="search-row">
       <input type="text" class="fld" id="search" autocomplete="off" placeholder="Что вы ели?">
       <input type="file" id="meal-photo" accept="image/*" class="hidden">
+      <button type="button" class="icon-btn" id="scan-btn" aria-label="Сканировать штрихкод">
+        <svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2"/><path d="M7 8v8M10.5 8v8M14 8v8M17 8v8"/></svg>
+      </button>
       <button type="button" class="icon-btn" id="photo-btn" aria-label="Приложить фото">
         <svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 012-2h2l1.5-2h7L17 6h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
       </button>
     </div>
+
+    <div id="scan-box" class="hidden">
+      <video id="scan-video" playsinline muted></video>
+      <div class="src" id="scan-hint" style="margin-top:8px"></div>
+      <div class="portion">
+        <input type="text" class="fld" id="scan-code" inputmode="numeric" autocomplete="off" placeholder="Или цифры под кодом">
+        <button class="cta" id="scan-find" style="width:auto">Найти</button>
+      </div>
+      <button class="cta ghost" id="scan-close" style="margin-top:8px">Закрыть</button>
+    </div>
+
+    <div id="freq-row"></div>
     <div id="results"></div>
     <div id="off-row" class="hidden" style="margin-top:10px">
       <button class="cta ghost" id="off-btn">Искать среди упакованных продуктов</button>
     </div>
+
+    <div style="margin-top:10px">
+      <button class="cta ghost" id="own-btn">Своё блюдо или рецепт</button>
+    </div>
+
+    <!-- Своё блюдо: либо значения с этикетки, либо рецепт из ингредиентов,
+         из которого калорийность на 100 г считается сама. -->
+    <div id="own-box" class="hidden">
+      <div class="seg" id="own-seg" style="margin-top:12px">
+        <button type="button" data-own="simple" aria-pressed="true">Значения</button>
+        <button type="button" data-own="recipe" aria-pressed="false">Рецепт</button>
+      </div>
+
+      <input type="text" class="fld" id="own-name" autocomplete="off" placeholder="Название блюда" style="margin-top:10px">
+
+      <div id="own-simple">
+        <div class="row" style="margin-top:8px">
+          <div><input type="text" class="fld" id="own-kcal" inputmode="decimal" autocomplete="off" placeholder="Ккал / 100 г"></div>
+          <div><input type="text" class="fld" id="own-port" inputmode="decimal" autocomplete="off" placeholder="Порция, г"></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div><input type="text" class="fld" id="own-prot" inputmode="decimal" autocomplete="off" placeholder="Белки"></div>
+          <div><input type="text" class="fld" id="own-fat" inputmode="decimal" autocomplete="off" placeholder="Жиры"></div>
+          <div><input type="text" class="fld" id="own-carb" inputmode="decimal" autocomplete="off" placeholder="Углеводы"></div>
+        </div>
+        <p class="src" style="margin-top:8px">Б, Ж, У — граммы на 100 г, их можно не заполнять.
+        Значения берите с этикетки: там они на 100 г, а не на порцию.</p>
+      </div>
+
+      <div id="own-recipe" class="hidden">
+        <div class="portion">
+          <input type="text" class="fld" id="ing-search" autocomplete="off" placeholder="Ингредиент">
+          <input type="text" class="fld" id="ing-grams" inputmode="decimal" autocomplete="off" placeholder="г" style="flex:none;width:76px">
+        </div>
+        <div id="ing-hits"></div>
+        <div id="ing-list"></div>
+        <input type="text" class="fld" id="own-yield" inputmode="decimal" autocomplete="off" placeholder="Вес готового блюда, г" style="margin-top:10px">
+        <p class="src" style="margin-top:8px">Вес готового — сколько блюдо весит на весах после готовки.
+        Каша впитывает воду и тяжелеет, мясо её теряет; если не указать, возьмём сумму ингредиентов.</p>
+        <div id="own-calc" class="warn ok hidden"></div>
+      </div>
+
+      <div class="portion">
+        <button class="cta" id="own-save" style="width:auto">Сохранить</button>
+        <button class="cta ghost" id="own-cancel" style="width:auto">Отмена</button>
+      </div>
+
+      <div id="own-list"></div>
+    </div>
+
     <img id="photo-preview" class="hidden" alt="">
     <div id="diary-err" class="warn hidden"></div>
   </div>
@@ -412,7 +576,7 @@
   <p class="note">
     Значения по домашним блюдам — усреднённые: у борща вашей бабушки и у столовского калорийность отличается заметно,
     потому что отличается рецепт. Для упакованных продуктов данные берутся из Open Food Facts по факту, с этикетки.
-    Записи хранятся только в вашем телефоне и никуда не отправляются.
+    Записи лежат в памяти браузера; на сервер они попадают, только если включить перенос между устройствами в профиле.
   </p>
 </section>
 
@@ -433,10 +597,54 @@
   </div>
 
   <div class="card">
+    <label>Фото</label>
+    <p class="src" style="margin-top:8px">Снимайте с одного места, в одной позе и при одном свете —
+    иначе сравнение покажет разницу в освещении, а не в вас. Прошлый снимок остаётся
+    бледной подсказкой поверх камеры: по ней и совмещайтесь.</p>
+
+    <div id="cam-box" class="hidden">
+      <div class="cam-wrap">
+        <video id="cam-video" playsinline muted></video>
+        <img id="cam-ghost" class="hidden" alt="">
+        <div class="cam-grid"></div>
+      </div>
+      <label style="margin-top:12px">Прозрачность подсказки</label>
+      <input type="range" id="cam-fade" min="0" max="70" value="35" style="width:100%">
+      <div class="portion">
+        <button class="cta" id="cam-shot" style="width:auto">Снять</button>
+        <button class="cta ghost" id="cam-close" style="width:auto">Закрыть</button>
+      </div>
+    </div>
+
+    <div class="portion" style="margin-top:14px">
+      <button class="cta" id="cam-btn" style="width:auto">Камера</button>
+      <button class="cta ghost" id="pick-btn" style="width:auto">Из галереи</button>
+      <input type="file" id="body-file" accept="image/*" class="hidden">
+    </div>
+    <div id="shots-err" class="warn hidden"></div>
+
+    <div id="ba-box"></div>
+    <div id="shots-list"></div>
+  </div>
+
+  <div class="card">
     <label>Калории за две недели</label>
     <div class="sum-row" id="k-stats"></div>
     <div id="k-chart"></div>
     <p class="note" id="k-note"></p>
+  </div>
+
+  <div class="card">
+    <label>Картинкой</label>
+    <p class="src" style="margin-top:8px">Собирает ваши цифры в одну картинку — её удобно отправить
+    тренеру или выложить. Фотографии в неё не попадают.</p>
+    <button class="cta" id="card-make" style="margin-top:14px">Собрать картинку</button>
+    <img id="card-preview" class="hidden" alt="Картинка с прогрессом">
+    <div class="portion hidden" id="card-actions">
+      <button class="cta" id="card-share" style="width:auto">Поделиться</button>
+      <button class="cta ghost" id="card-save" style="width:auto">Сохранить</button>
+    </div>
+    <div id="card-err" class="warn hidden"></div>
   </div>
 </section>
 
@@ -534,9 +742,48 @@
   <button class="cta ghost hidden" id="send-btn">Поделиться расчётом</button>
   <div id="send-status" class="warn hidden"></div>
 
+  <!-- Обе карточки ниже работают только внутри Telegram: подпись, которой
+       сервер проверяет, что это правда вы, выдаёт сам Telegram. -->
+  <div class="card hidden" id="sync-card" style="margin-top:14px">
+    <label>Записи на другом устройстве</label>
+    <p class="src" style="margin-top:8px">Переносит дневник, вес, профиль и свои блюда
+    между телефоном и компьютером. Фотографии не переносятся — они тяжёлые
+    и остаются там, где сняты.</p>
+    <div class="portion">
+      <button class="cta" id="sync-now" style="width:auto">Синхронизировать</button>
+      <button class="cta ghost" id="sync-auto" style="width:auto" aria-pressed="false">Автоматически</button>
+    </div>
+    <div id="sync-note" class="src" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card hidden" id="rem-card" style="margin-top:14px">
+    <label>Напоминание</label>
+    <p class="src" style="margin-top:8px">Бот напишет вечером, если за день не записано ни одного
+    блюда. Если записано — промолчит. Выключить можно и отсюда, и командой /stop в переписке с ботом.</p>
+    <div class="portion">
+      <select class="fld" id="rem-hour" aria-label="Час напоминания"></select>
+      <button class="cta" id="rem-on" style="width:auto">Включить</button>
+    </div>
+    <button class="cta ghost hidden" id="rem-off" style="margin-top:10px">Выключить</button>
+    <div id="rem-note" class="src" style="margin-top:10px"></div>
+  </div>
+
+  <!-- Показывается только там, где установка вообще возможна:
+       в Telegram и на уже установленном приложении карточки не будет. -->
+  <div class="card hidden" id="install-card" style="margin-top:14px">
+    <label>На домашний экран</label>
+    <p class="src" style="margin-top:8px">Приложение можно поставить как обычное:
+    появится значок, откроется без адресной строки и будет работать без интернета.
+    Записи останутся те же — они и так хранятся в телефоне.</p>
+    <button class="cta" id="install-btn" style="margin-top:14px">Установить</button>
+    <div id="install-note" class="src" style="margin-top:10px"></div>
+  </div>
+
   <p class="note">Расчёт по формуле Миффлина–Сан Жеора. Это ориентир, а не медицинское назначение.
   При хронических заболеваниях, беременности или приёме лекарств план нужно согласовать с врачом.
-  Данные хранятся только в вашем телефоне и никуда не отправляются.</p>
+  Данные лежат в памяти вашего браузера. Наружу они уходят только если вы сами включите
+  перенос между устройствами — и только на ваш собственный сервер бота. Фотографии
+  не переносятся никогда.</p>
 </section>
 
 </main>
@@ -899,15 +1146,39 @@ const DISHES = [
 ['Протеиновый коктейль на воде',110,24,1.5,2,300]
 ];
 
+/* Все ключи хранилища объявлены здесь, выше любого обращения к ним.
+   const в JavaScript нельзя использовать до строки объявления — даже внутри
+   функции, вызванной раньше: скрипт падает целиком. */
 const DIARY_KEY = 'diary.v1';
 const NORM_KEY = 'norm.v1';
+const WATER_KEY = 'water.v1';
+const FREQ_KEY = 'freq.v1';
+const CUSTOM_KEY = 'custom.v1';
+const SHOTS_KEY = 'shots.v1';
+const DIARYTS_KEY = 'diaryts.v1';
+const SYNC_KEY = 'sync.v1';
+const WATER_GOAL = 8;   // стаканов по 250 мл — привычный ориентир, не медицинская норма
 
 // localStorage может быть недоступен: приватный режим, отключённые данные сайта.
 // Приложение обязано работать и в этом случае, просто без сохранения между сессиями.
 let memoryFallback = {};
+// Объявлено здесь, а не рядом с переносом: store() ниже обращается к нему,
+// а он может сработать раньше, чем выполнение дойдёт до того раздела.
+let syncBusy = false;
+// Ключи, которые переносятся между устройствами. Снимки тела и служебные
+// настройки самого переноса сюда намеренно не входят.
+const SYNCED_KEYS = ['profile.v1', 'norm.v1', 'diary.v1', 'diaryts.v1',
+                     'weightlog.v1', 'custom.v1', 'water.v1', 'freq.v1'];
+
 function store(k, v) {
-  try { localStorage.setItem(k, JSON.stringify(v)); return true; }
-  catch (e) { memoryFallback[k] = v; return false; }
+  let ok = true;
+  try { localStorage.setItem(k, JSON.stringify(v)); }
+  catch (e) { memoryFallback[k] = v; ok = false; }
+  // Изменилось что-то переносимое — заводим отложенную отправку.
+  // Функция объявлена ниже: объявления функций поднимаются, к моменту
+  // первого вызова она уже существует.
+  if (SYNCED_KEYS.includes(k)) scheduleSync();
+  return ok;
 }
 function restore(k, def) {
   try {
@@ -948,7 +1219,19 @@ function getDay(off) {
 function setDay(off, entries) {
   const all = restore(DIARY_KEY, {});
   all[dayKey(off)] = entries;
+  stampDay(dayKey(off));
   return store(DIARY_KEY, all);
+}
+
+/* Отметка времени по каждому дню. Нужна для переноса записей между
+   устройствами: без неё при сведении двух копий пришлось бы объединять записи,
+   и удалённое на телефоне блюдо возвращалось бы с компьютера. С отметкой
+   правило простое и понятное — за каждый день побеждает та версия,
+   которую правили позже. */
+function stampDay(key) {
+  const ts = restore(DIARYTS_KEY, {});
+  ts[key] = Date.now();
+  store(DIARYTS_KEY, ts);
 }
 
 function totals(entries) {
@@ -1010,6 +1293,13 @@ function renderDay() {
     </div>`;
   }).join('');
 
+  // Форму добавления вынимаем из списка приёмов пищи ДО перерисовки.
+  // Она живёт в одном экземпляре и переезжает в раскрытый приём; если оставить
+  // её внутри, присваивание innerHTML ниже уничтожит саму форму вместе со всеми
+  // обработчиками, и следующая строка не найдёт её в разметке.
+  const adder = document.getElementById('adder');
+  document.getElementById('tab-diary').appendChild(adder);
+
   // Приёмы пищи показываем все и всегда: пустой «Ужин» — это приглашение записать,
   // а не отсутствующий раздел, который надо где-то искать
   document.getElementById('meals').innerHTML = MEAL_ORDER.map(m => {
@@ -1037,9 +1327,7 @@ function renderDay() {
     </div>`;
   }).join('');
 
-  // Форма добавления — единственный экземпляр, переносим её в раскрытый приём пищи,
-  // чтобы не потерять фокус ввода и уже назначенные обработчики
-  const adder = document.getElementById('adder');
+  // Возвращаем форму в раскрытый приём пищи, если он есть
   if (activeMeal) {
     const slot = document.querySelector(`.meal-sec[data-meal="${activeMeal}"] .meal-slot`);
     if (slot) { slot.appendChild(adder); adder.classList.remove('hidden'); }
@@ -1060,13 +1348,20 @@ function renderDay() {
     };
   });
 
-  document.querySelectorAll('.rm').forEach(b => {
+  // Именно «.entry .rm»: такие же крестики есть у ингредиентов рецепта
+  // и у своих блюд, и общий селектор перевешивал бы им обработчик удаления записи.
+  document.querySelectorAll('.entry .rm').forEach(b => {
     b.onclick = () => {
       setDay(dayOffset, getDay(dayOffset).filter(e => e.id !== b.dataset.id));
       renderDay();
       haptic();
     };
   });
+
+  renderWater();
+  renderStreak();
+  renderCopyRow();
+  renderFreqRow();
 }
 
 function clearAdder() {
@@ -1092,16 +1387,31 @@ function diaryErr(msg) {
 }
 
 /* ---------- поиск ---------- */
+/* Свои блюда лежат в том же виде, что и база: [название, ккал, Б, Ж, У, порция].
+   Седьмым полем помечаем «своё» — чтобы показать метку в выдаче и дать удалить. */
+function customDishes() {
+  const list = restore(CUSTOM_KEY, []);
+  return Array.isArray(list) ? list.filter(d => Array.isArray(d) && d.length >= 6) : [];
+}
+
 function localSearch(q) {
   const s = q.trim().toLowerCase();
   if (s.length < 2) return [];
   const starts = [], has = [];
-  for (const d of DISHES) {
+  // Своё блюдо с тем же названием перекрывает базовое: человек не просто так
+  // его завёл — значит, усреднённое значение ему не подошло.
+  const own = customDishes();
+  const shadowed = new Set(own.map(d => d[0].toLowerCase()));
+  const pool = own.concat(DISHES.filter(d => !shadowed.has(d[0].toLowerCase())));
+  for (const d of pool) {
     const n = d[0].toLowerCase();
     if (n.startsWith(s)) starts.push(d);
     else if (n.includes(s)) has.push(d);
   }
-  return starts.concat(has).slice(0, 8);
+  // Частое — вперёд: иначе каждый день приходится прокручивать до одного и того же
+  const f = restore(FREQ_KEY, {});
+  const byFreq = (x, y) => (f[y[0]] || 0) - (f[x[0]] || 0);
+  return starts.sort(byFreq).concat(has.sort(byFreq)).slice(0, 8);
 }
 
 function showHits(items) {
@@ -1109,7 +1419,7 @@ function showHits(items) {
   if (!items.length) { box.innerHTML = ''; return; }
   box.innerHTML = items.map((d, i) =>
     `<button type="button" class="hit" data-i="${i}">
-       <span style="color:var(--text)">${esc(d[0])}</span>
+       <span style="color:var(--text)">${esc(d[0])}${d[6] ? ' <i class="tag">своё</i>' : ''}</span>
        <span>${Math.round(d[1])} ккал / 100 г</span>
      </button>`).join('');
   box.querySelectorAll('.hit').forEach(b => {
@@ -1147,6 +1457,7 @@ function addEntry() {
     photo: pendingPhoto
   };
 
+  bumpFreq(entry.name);
   const entries = getDay(dayOffset).concat([entry]);
   if (!setDay(dayOffset, entries) && entry.photo) {
     // чаще всего упираемся в квоту из-за фотографий — пробуем сохранить запись без снимка
@@ -1249,6 +1560,366 @@ document.getElementById('meal-photo').onchange = async e => {
 };
 
 renderDay();
+
+
+/* ==================== ВОДА, СЕРИЯ, ЧАСТЫЕ БЛЮДА, ШТРИХКОДЫ ==================== */
+
+function renderWater() {
+  const all = restore(WATER_KEY, {});
+  const n = all[dayKey(dayOffset)] || 0;
+  document.getElementById('glasses').innerHTML =
+    Array.from({ length: WATER_GOAL }, (_, i) => `<div class="glass${i < n ? ' on' : ''}"></div>`).join('');
+  document.getElementById('water-note').textContent =
+    n === 0 ? 'Ни одного стакана' : `${n} из ${WATER_GOAL} · примерно ${n * 250} мл`;
+}
+
+function addWater(d) {
+  const all = restore(WATER_KEY, {});
+  const k = dayKey(dayOffset);
+  all[k] = Math.max(0, Math.min(WATER_GOAL * 2, (all[k] || 0) + d));
+  store(WATER_KEY, all);
+  renderWater();
+  haptic();
+}
+
+document.getElementById('water-plus').onclick = () => addWater(1);
+document.getElementById('water-minus').onclick = () => addWater(-1);
+
+/* Серия дней. Считаем подряд идущие дни с записями, начиная с сегодня;
+   если сегодня ещё пусто — начинаем со вчера, иначе серия обнулялась бы
+   каждое утро и вся затея теряла бы смысл. */
+function streakLength() {
+  const all = restore(DIARY_KEY, {});
+  const has = off => (all[dayKey(off)] || []).length > 0;
+  let start = has(0) ? 0 : (has(-1) ? -1 : null);
+  if (start === null) return 0;
+  let n = 0;
+  for (let off = start; off > -400; off--) {
+    if (!has(off)) break;
+    n++;
+  }
+  return n;
+}
+
+function renderStreak() {
+  const n = streakLength();
+  const el = document.getElementById('streak');
+  if (n < 2) { el.textContent = ''; return; }
+  const word = n % 10 === 1 && n % 100 !== 11 ? 'день'
+    : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'дня' : 'дней';
+  el.textContent = `${n} ${word} подряд`;
+}
+
+/* Копирование вчерашнего дня: у многих меню повторяется,
+   и переписывать его заново — главная причина забросить дневник. */
+function renderCopyRow() {
+  const box = document.getElementById('copy-row');
+  const today = getDay(dayOffset);
+  const prev = getDay(dayOffset - 1);
+  if (today.length || !prev.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<button class="cta ghost" id="copy-btn" style="margin-bottom:14px">
+    Скопировать предыдущий день (${prev.length} записей)</button>`;
+  document.getElementById('copy-btn').onclick = () => {
+    const copy = prev.map(e => ({ ...e, id: String(Date.now()) + Math.random().toString(36).slice(2, 7), photo: null }));
+    setDay(dayOffset, copy);
+    renderDay();
+    safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
+  };
+}
+
+/* Частые блюда. Счётчик растёт при каждой записи и поднимает блюдо в поиске:
+   человек ест одно и то же чаще, чем ему кажется. */
+function bumpFreq(name) {
+  const f = restore(FREQ_KEY, {});
+  f[name] = (f[name] || 0) + 1;
+  store(FREQ_KEY, f);
+}
+
+function topFreq(n) {
+  const f = restore(FREQ_KEY, {});
+  return Object.keys(f).sort((a, b) => f[b] - f[a]).slice(0, n);
+}
+
+function renderFreqRow() {
+  const box = document.getElementById('freq-row');
+  const names = topFreq(6);
+  if (!names.length) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="group-title" style="margin-top:14px">Часто</div><div class="chips">' +
+    names.map((n, i) => `<button type="button" class="chip" data-freq="${i}">${esc(n)}</button>`).join('') +
+    '</div>';
+  box.querySelectorAll('[data-freq]').forEach(b => {
+    b.onclick = () => {
+      const name = names[+b.dataset.freq];
+      const d = DISHES.find(x => x[0] === name);
+      if (d) choose(d);
+      else { document.getElementById('search').value = name; showHits(localSearch(name)); }
+      haptic();
+    };
+  });
+}
+
+/* ---------- свои блюда и рецепты ---------- */
+
+/* Зачем это нужно. Усреднённое значение из базы врёт тем сильнее, чем домашнее
+   блюдо: борщ бывает и постным, и на рёбрышках. Поэтому два пути — вбить
+   значения с этикетки или собрать блюдо из ингредиентов, и тогда калорийность
+   на 100 г посчитается сама, с поправкой на вес готового. */
+
+let ownMode = 'simple';
+let recipe = [];        // [{ name, per:[ккал,Б,Ж,У], grams }]
+
+function ownNum(id, def = NaN) {
+  const raw = document.getElementById(id).value.trim().replace(',', '.');
+  if (!raw) return def;
+  return /^\d+(\.\d+)?$/.test(raw) ? parseFloat(raw) : NaN;
+}
+
+function openOwn(on) {
+  document.getElementById('own-box').classList.toggle('hidden', !on);
+  document.getElementById('own-btn').textContent = on ? 'Свернуть' : 'Своё блюдо или рецепт';
+  if (on) { renderOwnList(); renderIngredients(); }
+}
+
+function setOwnMode(m) {
+  ownMode = m;
+  document.querySelectorAll('#own-seg button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.own === m)));
+  document.getElementById('own-simple').classList.toggle('hidden', m !== 'simple');
+  document.getElementById('own-recipe').classList.toggle('hidden', m !== 'recipe');
+}
+
+/* Складываем ингредиенты и делим на вес готового блюда.
+   Вес готового не равен сумме сырых: каша впитывает воду, мясо её теряет.
+   Калории при этом никуда не деваются — меняется только их плотность. */
+function recipeTotals() {
+  let kcal = 0, prot = 0, fat = 0, carb = 0, raw = 0;
+  for (const it of recipe) {
+    const k = it.grams / 100;
+    kcal += it.per[0] * k; prot += it.per[1] * k;
+    fat += it.per[2] * k; carb += it.per[3] * k;
+    raw += it.grams;
+  }
+  const yld = ownNum('own-yield', 0) || raw;
+  const per = yld > 0 ? 100 / yld : 0;
+  return {
+    raw, yield: yld,
+    per100: [kcal * per, prot * per, fat * per, carb * per],
+    total: [kcal, prot, fat, carb]
+  };
+}
+
+function renderIngredients() {
+  const box = document.getElementById('ing-list');
+  box.innerHTML = recipe.map((it, i) =>
+    `<div class="ing">
+       <div style="min-width:0"><b style="font-weight:600">${esc(it.name)}</b>
+         <span style="margin-left:8px">${it.grams} г</span></div>
+       <button type="button" class="rm" data-ing="${i}" aria-label="Убрать">×</button>
+     </div>`).join('');
+  box.querySelectorAll('[data-ing]').forEach(b => {
+    b.onclick = () => { recipe.splice(+b.dataset.ing, 1); renderIngredients(); haptic(); };
+  });
+
+  const out = document.getElementById('own-calc');
+  if (!recipe.length) { out.classList.add('hidden'); return; }
+  const t = recipeTotals();
+  out.classList.remove('hidden');
+  out.innerHTML = `Получается <b>${Math.round(t.per100[0])} ккал на 100 г</b> · `
+    + `Б ${n1(t.per100[1])} · Ж ${n1(t.per100[2])} · У ${n1(t.per100[3])}<br>`
+    + `Всё блюдо: ${Math.round(t.total[0])} ккал, вес ${Math.round(t.yield)} г`
+    + (t.yield !== t.raw ? ` (сырых ${Math.round(t.raw)} г)` : '');
+}
+
+function renderOwnList() {
+  const box = document.getElementById('own-list');
+  const own = customDishes();
+  if (!own.length) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="group-title">Мои блюда</div>' + own.map((d, i) =>
+    `<div class="ing">
+       <div style="min-width:0"><b style="font-weight:600">${esc(d[0])}</b>
+         <span style="margin-left:8px">${Math.round(d[1])} ккал / 100 г</span></div>
+       <button type="button" class="rm" data-own-rm="${i}" aria-label="Удалить">×</button>
+     </div>`).join('');
+  box.querySelectorAll('[data-own-rm]').forEach(b => {
+    b.onclick = () => {
+      const list = customDishes();
+      list.splice(+b.dataset.ownRm, 1);
+      store(CUSTOM_KEY, list);
+      renderOwnList();
+      haptic();
+    };
+  });
+}
+
+function saveOwn() {
+  const name = document.getElementById('own-name').value.trim();
+  if (name.length < 2) return diaryErr('Дайте блюду название.');
+
+  let dish;
+  if (ownMode === 'simple') {
+    const kcal = ownNum('own-kcal');
+    if (!Number.isFinite(kcal) || kcal < 0 || kcal > 900)
+      return diaryErr('Калорийность на 100 г — число от 0 до 900.');
+    const p = ownNum('own-prot', 0), f = ownNum('own-fat', 0), c = ownNum('own-carb', 0);
+    if ([p, f, c].some(v => !Number.isFinite(v) || v < 0 || v > 100))
+      return diaryErr('Б, Ж и У — граммы на 100 г, от 0 до 100.');
+    const port = ownNum('own-port', 100);
+    if (!Number.isFinite(port) || port <= 0 || port > 5000)
+      return diaryErr('Порция — число от 1 до 5000 г.');
+    dish = [name, kcal, p, f, c, Math.round(port), 1];
+  } else {
+    if (!recipe.length) return diaryErr('Добавьте хотя бы один ингредиент.');
+    const y = ownNum('own-yield', 0);
+    if (!Number.isFinite(y) || y < 0) return diaryErr('Вес готового блюда — число в граммах.');
+    const t = recipeTotals();
+    if (!(t.yield > 0)) return diaryErr('Вес готового блюда должен быть больше нуля.');
+    dish = [name, t.per100[0], t.per100[1], t.per100[2], t.per100[3],
+            Math.round(Math.min(5000, t.yield)), 1];
+  }
+  diaryErr('');
+
+  // Одноимённое блюдо заменяем, а не плодим дубли
+  const list = customDishes().filter(d => d[0].toLowerCase() !== name.toLowerCase());
+  list.unshift(dish);
+  if (!store(CUSTOM_KEY, list)) return diaryErr('Не получилось сохранить: память браузера заполнена.');
+
+  recipe = [];
+  ['own-name', 'own-kcal', 'own-port', 'own-prot', 'own-fat', 'own-carb', 'own-yield']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  renderIngredients();
+  renderOwnList();
+  openOwn(false);
+  choose(dish);   // сразу предлагаем записать его в дневник
+  safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
+}
+
+document.getElementById('own-btn').onclick = () => {
+  openOwn(document.getElementById('own-box').classList.contains('hidden'));
+  haptic();
+};
+document.getElementById('own-cancel').onclick = () => { diaryErr(''); openOwn(false); };
+document.getElementById('own-save').onclick = saveOwn;
+document.querySelectorAll('#own-seg button').forEach(b => {
+  b.onclick = () => { setOwnMode(b.dataset.own); haptic(); };
+});
+document.getElementById('own-yield').oninput = renderIngredients;
+
+let ingTimer = null;
+document.getElementById('ing-search').oninput = e => {
+  clearTimeout(ingTimer);
+  const q = e.target.value;
+  ingTimer = setTimeout(() => {
+    const hits = localSearch(q);
+    const box = document.getElementById('ing-hits');
+    box.innerHTML = hits.map((d, i) =>
+      `<button type="button" class="hit" data-ing-add="${i}">
+         <span style="color:var(--text)">${esc(d[0])}</span>
+         <span>${Math.round(d[1])} ккал / 100 г</span>
+       </button>`).join('');
+    box.querySelectorAll('[data-ing-add]').forEach(b => {
+      b.onclick = () => {
+        const d = hits[+b.dataset.ingAdd];
+        const g = ownNum('ing-grams', d[5] || 100);
+        if (!Number.isFinite(g) || g <= 0 || g > 5000) return diaryErr('Вес ингредиента — от 1 до 5000 г.');
+        diaryErr('');
+        recipe.push({ name: d[0], per: [d[1], d[2], d[3], d[4]], grams: Math.round(g) });
+        document.getElementById('ing-search').value = '';
+        document.getElementById('ing-grams').value = '';
+        box.innerHTML = '';
+        renderIngredients();
+        haptic();
+      };
+    });
+  }, 120);
+};
+
+/* ---------- штрихкоды ---------- */
+
+let scanStream = null, scanLoop = null;
+
+function stopScan() {
+  if (scanLoop) { clearInterval(scanLoop); scanLoop = null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  document.getElementById('scan-box').classList.add('hidden');
+}
+
+document.getElementById('scan-close').onclick = stopScan;
+
+document.getElementById('scan-btn').onclick = async () => {
+  const box = document.getElementById('scan-box');
+  const hint = document.getElementById('scan-hint');
+  if (!box.classList.contains('hidden')) { stopScan(); return; }
+  box.classList.remove('hidden');
+  hint.textContent = 'Включаю камеру…';
+
+  const video = document.getElementById('scan-video');
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = scanStream;
+    await video.play();
+  } catch (e) {
+    // Камеры может не быть, или пользователь отказал — ручной ввод кода работает всегда
+    hint.textContent = 'Камера недоступна. Введите цифры под штрихкодом вручную — результат тот же.';
+    return;
+  }
+
+  hint.textContent = 'Наведите камеру на штрихкод';
+
+  // Свой распознаватель браузера есть не везде: в Safari его нет,
+  // поэтому при отсутствии подгружаем библиотеку — но только по нажатию,
+  // чтобы она не весила в приложении у тех, кто сканером не пользуется
+  if ('BarcodeDetector' in window) {
+    const det = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+    scanLoop = setInterval(async () => {
+      try {
+        const codes = await det.detect(video);
+        if (codes && codes.length) { stopScan(); lookupBarcode(codes[0].rawValue); }
+      } catch (e) { /* кадр не разобрался — ждём следующий */ }
+    }, 400);
+    return;
+  }
+
+  try {
+    const zx = await import('https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm');
+    const reader = new zx.BrowserMultiFormatReader();
+    reader.decodeFromVideoElement(video, (result) => {
+      if (result) { try { reader.reset(); } catch (e) {} stopScan(); lookupBarcode(result.getText()); }
+    });
+  } catch (e) {
+    hint.textContent = 'Распознаватель не загрузился. Введите цифры под штрихкодом вручную.';
+  }
+};
+
+document.getElementById('scan-find').onclick = () => {
+  const code = document.getElementById('scan-code').value.trim();
+  if (!/^\d{6,14}$/.test(code)) return diaryErr('Код — это 8 или 13 цифр под полосками');
+  stopScan();
+  lookupBarcode(code);
+};
+
+async function lookupBarcode(code) {
+  diaryErr('');
+  const search = document.getElementById('search');
+  search.value = 'Ищу код ' + code + '…';
+  try {
+    const res = await fetch('https://world.openfoodfacts.org/api/v2/product/'
+      + encodeURIComponent(code) + '.json?fields=product_name,brands,nutriments');
+    const data = await res.json();
+    const p = data && data.product;
+    const kcal = p && p.nutriments && p.nutriments['energy-kcal_100g'];
+    if (!p || !p.product_name || !Number.isFinite(kcal)) {
+      search.value = '';
+      return diaryErr('Такого кода нет в базе продуктов. Занесите блюдо вручную через поиск.');
+    }
+    const n = p.nutriments;
+    const label = p.brands ? `${p.product_name} (${String(p.brands).split(',')[0].trim()})` : p.product_name;
+    search.value = label;
+    choose([label, kcal, n.proteins_100g || 0, n.fat_100g || 0, n.carbohydrates_100g || 0, 100]);
+  } catch (e) {
+    search.value = '';
+    diaryErr('Не получилось обратиться к базе продуктов — нужен интернет.');
+  }
+}
 
 /* ========================= ПРОФИЛЬ ========================= */
 
@@ -1758,7 +2429,379 @@ function renderProgress() {
       ? 'Пока мало данных: по нескольким дням о привычке судить рано. Числа за конкретный день смотрите в дневнике, переключая дату.'
       : 'Числа за конкретный день смотрите в дневнике, переключая дату.';
   }
+
+  renderShots();
 }
+
+/* ==================== ФОТО «ДО / ПОСЛЕ» ==================== */
+
+/* Весы показывают одно число, зеркало — другое: при силовых вес стоит,
+   а тело меняется. Поэтому снимки. Главная их беда — несовпадение кадров:
+   шаг вбок и другой свет дают «разницу», которой нет. Отсюда подсказка
+   поверх камеры и сетка третей. */
+
+const SHOTS_MAX = 24;      // дальше упрёмся в память браузера — фотографии тяжёлые
+let camStream = null;
+let baPick = { a: null, b: null };
+
+function bodyShots() {
+  const l = restore(SHOTS_KEY, []);
+  return Array.isArray(l) ? l.filter(s => s && s.img) : [];
+}
+
+function shotsErr(msg) {
+  const el = document.getElementById('shots-err');
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
+}
+
+/* Вес на дату снимка: подписи «80,6 кг» под фотографией делают сравнение
+   осмысленным, иначе это просто две картинки. */
+function weightOn(date) {
+  const log = restore(WEIGHTLOG_KEY, []);
+  let best = null;
+  for (const x of log) if (x.date <= date) best = x;
+  return best ? best.weight : null;
+}
+
+function addShot(dataUrl) {
+  const list = bodyShots();
+  list.push({ id: String(Date.now()), date: dayKey(0), img: dataUrl });
+  list.sort((a, b) => a.date < b.date ? -1 : 1);
+  const trimmed = list.slice(-SHOTS_MAX);
+  if (!store(SHOTS_KEY, trimmed)) {
+    // Память кончилась. Молча потерять снимок нельзя — честно говорим.
+    shotsErr('Снимок не поместился в память браузера. Удалите несколько старых фотографий.');
+    return false;
+  }
+  shotsErr(list.length > SHOTS_MAX
+    ? `Храним последние ${SHOTS_MAX} снимков — самый старый вытеснен.` : '');
+  baPick = { a: null, b: null };
+  renderShots();
+  safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
+  return true;
+}
+
+function renderShots() {
+  const list = bodyShots();
+  const ba = document.getElementById('ba-box');
+  const thumbs = document.getElementById('shots-list');
+
+  thumbs.innerHTML = list.length ? '<div class="thumbs">' + list.map((s, i) =>
+    `<div class="thumb"><img src="${s.img}" alt="">
+       <button type="button" data-shot-rm="${i}" aria-label="Удалить">×</button>
+       <span>${shortDate(s.date)}</span></div>`).join('') + '</div>' : '';
+  thumbs.querySelectorAll('[data-shot-rm]').forEach(b => {
+    b.onclick = () => {
+      const l = bodyShots();
+      l.splice(+b.dataset.shotRm, 1);
+      store(SHOTS_KEY, l);
+      baPick = { a: null, b: null };
+      renderShots();
+      haptic();
+    };
+  });
+
+  if (list.length < 2) {
+    ba.innerHTML = list.length
+      ? '<p class="src" style="margin-top:16px">Один снимок есть. Сравнивать будет с чем через пару недель — раньше разницу видно не будет.</p>'
+      : '';
+    return;
+  }
+
+  const ai = baPick.a ?? 0;
+  const bi = baPick.b ?? list.length - 1;
+  const opts = (sel) => list.map((s, i) =>
+    `<option value="${i}"${i === sel ? ' selected' : ''}>${shortDate(s.date)}</option>`).join('');
+  const cap = s => {
+    const w = weightOn(s.date);
+    return `<b>${shortDate(s.date)}</b>${w !== null ? n1(w) + ' кг' : ''}`;
+  };
+
+  ba.innerHTML = `
+    <div class="ba">
+      <figure><img src="${list[ai].img}" alt="Снимок «до»"><figcaption>${cap(list[ai])}</figcaption></figure>
+      <figure><img src="${list[bi].img}" alt="Снимок «после»"><figcaption>${cap(list[bi])}</figcaption></figure>
+    </div>
+    <div class="ba-sel">
+      <select class="fld" id="ba-a" aria-label="Снимок слева">${opts(ai)}</select>
+      <select class="fld" id="ba-b" aria-label="Снимок справа">${opts(bi)}</select>
+    </div>`;
+
+  document.getElementById('ba-a').onchange = e => { baPick.a = +e.target.value; renderShots(); };
+  document.getElementById('ba-b').onchange = e => { baPick.b = +e.target.value; renderShots(); };
+}
+
+/* ---- камера с подсказкой ---- */
+function stopCam() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  document.getElementById('cam-box').classList.add('hidden');
+}
+
+async function openCam() {
+  const box = document.getElementById('cam-box');
+  const video = document.getElementById('cam-video');
+  const ghost = document.getElementById('cam-ghost');
+  shotsErr('');
+
+  const list = bodyShots();
+  if (list.length) {
+    ghost.src = list[list.length - 1].img;
+    ghost.style.opacity = (+document.getElementById('cam-fade').value) / 100;
+    ghost.classList.remove('hidden');
+  } else {
+    ghost.classList.add('hidden');
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return shotsErr('Этот браузер не даёт доступ к камере. Снимите обычной камерой и добавьте из галереи.');
+  }
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1080 } }, audio: false
+    });
+    video.srcObject = camStream;
+    await video.play();
+    box.classList.remove('hidden');
+  } catch (e) {
+    shotsErr('Камера недоступна: браузер не дал разрешение. Можно добавить снимок из галереи.');
+  }
+}
+
+/* Кадр с камеры → сжатая картинка. 640 по длинной стороне — на глаз
+   разницы нет, а в память браузера помещается в разы больше снимков. */
+function grabFrame(video, max = 640) {
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) return null;
+  const k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * k);
+  c.height = Math.round(h * k);
+  c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.75);
+}
+
+document.getElementById('cam-btn').onclick = () => { openCam(); haptic(); };
+document.getElementById('cam-close').onclick = () => { stopCam(); haptic(); };
+document.getElementById('cam-fade').oninput = e => {
+  document.getElementById('cam-ghost').style.opacity = (+e.target.value) / 100;
+};
+document.getElementById('cam-shot').onclick = () => {
+  const img = grabFrame(document.getElementById('cam-video'));
+  if (!img) return shotsErr('Кадр не получился — камера ещё не запустилась.');
+  if (addShot(img)) stopCam();
+};
+
+/* ==================== ПРОГРЕСС КАРТИНКОЙ ==================== */
+
+/* Скриншот приложения на телефоне выходит с панелями, системной шапкой
+   и половиной экрана лишнего. Поэтому рисуем картинку сами — ровно с теми
+   цифрами, которые человек и хотел показать, и без его фотографий. */
+
+const CARD_W = 1080, CARD_H = 1350;
+let cardBlob = null;
+
+function cardData() {
+  const log = restore(WEIGHTLOG_KEY, []);
+  const diary = restore(DIARY_KEY, {});
+  const norm = restore(NORM_KEY, null);
+
+  const days = [];
+  for (let i = 29; i >= 0; i--) {
+    const k = dayKey(-i);
+    const kcal = Math.round(totals(diary[k] || []).kcal);
+    if (kcal > 0) days.push(kcal);
+  }
+  const avg = days.length ? Math.round(days.reduce((s, v) => s + v, 0) / days.length) : null;
+
+  return {
+    log: log.slice(-40),
+    first: log.length ? log[0] : null,
+    last: log.length ? log[log.length - 1] : null,
+    target: profile.target || null,
+    avg, logged: days.length,
+    streak: streakLength(),
+    norm: norm && norm.kcal ? norm.kcal : null,
+    name: (profile.name || '').trim() || (profile.nick || '').trim()
+  };
+}
+
+function drawCard() {
+  const d = cardData();
+  const c = document.createElement('canvas');
+  c.width = CARD_W; c.height = CARD_H;
+  const x = c.getContext('2d');
+  const F = '600 %dpx -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  const font = (px, w = 600) => F.replace('600', String(w)).replace('%d', String(px));
+
+  // фон
+  const g = x.createLinearGradient(0, 0, 0, CARD_H);
+  g.addColorStop(0, '#12161B'); g.addColorStop(1, '#0B0D10');
+  x.fillStyle = g; x.fillRect(0, 0, CARD_W, CARD_H);
+
+  const M = 90;
+  x.textBaseline = 'alphabetic';
+
+  // шапка
+  x.fillStyle = '#8A93A0'; x.font = font(34, 500);
+  x.fillText(d.name ? d.name.toUpperCase() : 'МОЙ ПРОГРЕСС', M, 130);
+
+  // главное число — изменение веса
+  let headline = '—', sub = 'Вес ещё не записан';
+  if (d.first && d.last && d.log.length > 1) {
+    const diff = d.last.weight - d.first.weight;
+    headline = (diff > 0 ? '+' : diff < 0 ? '−' : '') + n1(Math.abs(diff)) + ' кг';
+    sub = `${shortDate(d.first.date)} → ${shortDate(d.last.date)} · сейчас ${n1(d.last.weight)} кг`;
+    x.fillStyle = diff < 0 ? '#30D19A' : diff > 0 ? '#FFB020' : '#F2F4F7';
+  } else if (d.last) {
+    headline = n1(d.last.weight) + ' кг';
+    sub = 'Первая запись — сравнивать пока не с чем';
+    x.fillStyle = '#F2F4F7';
+  } else {
+    x.fillStyle = '#F2F4F7';
+  }
+  x.font = font(148, 650);
+  x.fillText(headline, M, 288);
+  x.fillStyle = '#8A93A0'; x.font = font(34, 400);
+  x.fillText(sub, M, 348);
+
+  // график веса
+  const gx = M, gy = 430, gw = CARD_W - M * 2, gh = 360;
+  x.fillStyle = '#171C22';
+  roundRect(x, gx, gy, gw, gh, 28); x.fill();
+
+  if (d.log.length > 1) {
+    const vals = d.log.map(p => p.weight).concat(d.target ? [d.target] : []);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = (hi - lo) * 0.18 || 1;
+    const top = hi + pad, bot = lo - pad;
+    const px = i => gx + 44 + i * (gw - 88) / (d.log.length - 1);
+    const py = v => gy + 48 + (top - v) / (top - bot) * (gh - 104);
+
+    if (d.target) {
+      x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 2;
+      x.setLineDash([10, 10]); x.beginPath();
+      x.moveTo(gx + 30, py(d.target)); x.lineTo(gx + gw - 30, py(d.target));
+      x.stroke(); x.setLineDash([]);
+      x.fillStyle = '#8A93A0'; x.font = font(24, 500);
+      x.fillText('цель ' + n1(d.target), gx + 30, py(d.target) - 14);
+    }
+
+    x.strokeStyle = '#4F8CFF'; x.lineWidth = 6;
+    x.lineJoin = 'round'; x.lineCap = 'round';
+    x.beginPath();
+    d.log.forEach((p, i) => i ? x.lineTo(px(i), py(p.weight)) : x.moveTo(px(i), py(p.weight)));
+    x.stroke();
+
+    const li = d.log.length - 1;
+    x.fillStyle = '#4F8CFF'; x.beginPath();
+    x.arc(px(li), py(d.log[li].weight), 12, 0, 7); x.fill();
+  } else {
+    x.fillStyle = '#5A626D'; x.font = font(30, 400);
+    x.fillText('Графику нужны хотя бы две записи', gx + 44, gy + gh / 2 + 10);
+  }
+
+  // три показателя
+  const cells = [
+    [d.avg !== null ? String(d.avg) : '—', 'ккал в день'],
+    [String(d.logged), 'дней записано'],
+    [String(d.streak), 'дней подряд']
+  ];
+  const cw = (gw - 40) / 3;
+  cells.forEach(([v, k], i) => {
+    const cx = gx + i * (cw + 20);
+    x.fillStyle = '#171C22';
+    roundRect(x, cx, 850, cw, 190, 28); x.fill();
+    x.textAlign = 'center';
+    x.fillStyle = '#F2F4F7'; x.font = font(58, 650);
+    x.fillText(v, cx + cw / 2, 945);
+    x.fillStyle = '#8A93A0'; x.font = font(25, 400);
+    x.fillText(k, cx + cw / 2, 992);
+    x.textAlign = 'left';
+  });
+
+  // норма
+  if (d.norm) {
+    x.fillStyle = '#8A93A0'; x.font = font(30, 400);
+    x.fillText(`Норма ${d.norm} ккал в день`, M, 1110);
+  }
+
+  // подпись
+  x.fillStyle = '#5A626D'; x.font = font(26, 400);
+  x.fillText('Телосложение и лицо · ' + shortDate(dayKey(0)), M, 1255);
+
+  return c;
+}
+
+function roundRect(x, l, t, w, h, r) {
+  x.beginPath();
+  x.moveTo(l + r, t);
+  x.arcTo(l + w, t, l + w, t + h, r);
+  x.arcTo(l + w, t + h, l, t + h, r);
+  x.arcTo(l, t + h, l, t, r);
+  x.arcTo(l, t, l + w, t, r);
+  x.closePath();
+}
+
+function cardErr(msg) {
+  const el = document.getElementById('card-err');
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
+}
+
+document.getElementById('card-make').onclick = () => {
+  cardErr('');
+  try {
+    const c = drawCard();
+    const img = document.getElementById('card-preview');
+    img.src = c.toDataURL('image/png');
+    img.classList.remove('hidden');
+    document.getElementById('card-actions').classList.remove('hidden');
+    c.toBlob(b => { cardBlob = b; }, 'image/png');
+    haptic();
+  } catch (e) {
+    cardErr('Не получилось собрать картинку.');
+  }
+};
+
+document.getElementById('card-save').onclick = () => {
+  const img = document.getElementById('card-preview');
+  if (!img.src) return;
+  const a = document.createElement('a');
+  a.href = img.src;
+  a.download = 'progress-' + dayKey(0) + '.png';
+  document.body.appendChild(a); a.click(); a.remove();
+  haptic();
+};
+
+/* Отправка. navigator.share с файлом есть не везде: на компьютере обычно нет,
+   в части браузеров — только по кнопке. Поэтому проверяем, а не надеемся. */
+document.getElementById('card-share').onclick = async () => {
+  cardErr('');
+  if (!cardBlob) return cardErr('Картинка ещё собирается — попробуйте через секунду.');
+  const file = new File([cardBlob], 'progress.png', { type: 'image/png' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file] });
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;   // человек передумал — это не ошибка
+    }
+  }
+  cardErr('Этот браузер не умеет отправлять файлы напрямую. Нажмите «Сохранить» — картинка уйдёт в галерею, оттуда её можно отправить.');
+};
+
+document.getElementById('pick-btn').onclick = () => document.getElementById('body-file').click();
+document.getElementById('body-file').onchange = async e => {
+  const f = e.target.files?.[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    addShot(await shrink(f, 640));
+  } catch (err) {
+    shotsErr('Не получилось прочитать снимок.');
+  }
+};
 
 document.getElementById('w-add').onclick = () => {
   const raw = document.getElementById('w-input').value.trim().replace(',', '.');
@@ -1786,6 +2829,301 @@ document.getElementById('w-add').onclick = () => {
   loadProfileForm();
   recalc();
   safeTg(() => tg?.HapticFeedback?.notificationOccurred?.('success'));
+};
+
+/* ==================== ПЕРЕНОС ЗАПИСЕЙ МЕЖДУ УСТРОЙСТВАМИ ==================== */
+
+/* Адрес бота. Если воркер переедет на другое имя, менять надо здесь —
+   больше он нигде не упоминается. */
+const API_BASE = 'https://food-bot.saintfit.workers.dev';
+
+/* Сервер хранит свёрток и не знает, что внутри. Сводит две копии само
+   приложение — здесь. Так сервер невозможно сломать изменением формата,
+   и он остаётся дешёвым.
+
+   Фотографии наружу не уходят: и объём, и вопрос, где лежат снимки тела. */
+
+function collectState() {
+  const diary = restore(DIARY_KEY, {});
+  const light = {};
+  for (const k of Object.keys(diary)) {
+    light[k] = (diary[k] || []).map(e => {
+      const { photo, ...rest } = e;
+      return rest;
+    });
+  }
+  return {
+    updated: Date.now(),
+    profile: restore(PROFILE_KEY, null),
+    norm: restore(NORM_KEY, null),
+    diary: light,
+    diaryts: restore(DIARYTS_KEY, {}),
+    weightlog: restore(WEIGHTLOG_KEY, []),
+    custom: customDishes(),
+    water: restore(WATER_KEY, {}),
+    freq: restore(FREQ_KEY, {})
+  };
+}
+
+function applyState(s) {
+  if (!s) return;
+  if (s.profile) { store(PROFILE_KEY, s.profile); profile = s.profile; }
+  if (s.norm) store(NORM_KEY, s.norm);
+  if (s.diary) store(DIARY_KEY, s.diary);
+  if (s.diaryts) store(DIARYTS_KEY, s.diaryts);
+  if (s.weightlog) store(WEIGHTLOG_KEY, s.weightlog);
+  if (s.custom) store(CUSTOM_KEY, s.custom);
+  if (s.water) store(WATER_KEY, s.water);
+  if (s.freq) store(FREQ_KEY, s.freq);
+}
+
+/* Правило сведения одно на все разделы, кроме дневника и частых блюд:
+   при расхождении побеждает та копия, которую правили позже. Дневник
+   сводится по дням — у каждого дня своя отметка времени, иначе редкая правка
+   на одном устройстве отменяла бы дневную работу на другом. */
+function mergeState(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const aNew = (a.updated || 0) >= (b.updated || 0);
+  const N = aNew ? a : b;          // копия посвежее
+  const O = aNew ? b : a;
+
+  // дневник: по дням, каждый со своей отметкой
+  const diary = {};
+  const diaryts = {};
+  const days = new Set([...Object.keys(a.diary || {}), ...Object.keys(b.diary || {})]);
+  for (const k of days) {
+    const ta = (a.diaryts || {})[k] || 0;
+    const tb = (b.diaryts || {})[k] || 0;
+    let win;
+    if (ta === tb) win = (N.diary || {})[k] !== undefined ? N : O;
+    else win = ta > tb ? a : b;
+    if ((win.diary || {})[k] === undefined) win = win === a ? b : a;
+    diary[k] = (win.diary || {})[k] || [];
+    diaryts[k] = Math.max(ta, tb);
+  }
+
+  // частые блюда: счётчик, поэтому берём больший — так ближе к правде,
+  // чем выбор одной из копий целиком
+  const freq = { ...(O.freq || {}) };
+  for (const [k, v] of Object.entries(N.freq || {})) freq[k] = Math.max(v, freq[k] || 0);
+
+  return {
+    updated: Math.max(a.updated || 0, b.updated || 0),
+    profile: N.profile || O.profile || null,
+    norm: N.norm || O.norm || null,
+    diary, diaryts, freq,
+    weightlog: mergeByKey(O.weightlog || [], N.weightlog || [], x => x.date)
+      .sort((x, y) => x.date < y.date ? -1 : 1),
+    custom: mergeByKey(O.custom || [], N.custom || [], d => String(d[0]).toLowerCase()),
+    water: { ...(O.water || {}), ...(N.water || {}) }
+  };
+}
+
+// Список из двух: при совпадении ключа остаётся запись из второго (свежего) списка
+function mergeByKey(older, newer, key) {
+  const map = new Map();
+  for (const x of older) map.set(key(x), x);
+  for (const x of newer) map.set(key(x), x);
+  return [...map.values()];
+}
+
+/* Снимки блюд на сервер не уходят, поэтому вернувшаяся оттуда версия дня
+   приходит без них. Подставляем свои обратно по совпадению записи. */
+function keepPhotos(merged) {
+  const mine = restore(DIARY_KEY, {});
+  for (const k of Object.keys(merged.diary || {})) {
+    const src = mine[k];
+    if (!src || !src.length) continue;
+    const byId = new Map(src.filter(e => e.photo).map(e => [e.id, e.photo]));
+    if (!byId.size) continue;
+    merged.diary[k] = merged.diary[k].map(e => byId.has(e.id) ? { ...e, photo: byId.get(e.id) } : e);
+  }
+  return merged;
+}
+
+function syncNote(msg) { document.getElementById('sync-note').textContent = msg; }
+
+function syncMeta() { return restore(SYNC_KEY, { auto: false, rev: 0 }); }
+
+async function api(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ initData: tg?.initData || '', ...body })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || ('http ' + res.status)), { status: res.status });
+  return data;
+}
+
+async function syncNow(quiet) {
+  if (syncBusy) return;
+  if (!tg?.initData) return syncNote('Перенос работает только когда приложение открыто из Telegram.');
+  syncBusy = true;
+  const btn = document.getElementById('sync-now');
+  btn.disabled = true;
+  if (!quiet) syncNote('Соединяюсь…');
+
+  try {
+    const meta = syncMeta();
+    const remote = await api('/api/sync', { op: 'pull' });
+    const merged = keepPhotos(mergeState(collectState(), remote.data));
+
+    let out = await api('/api/sync', { op: 'push', rev: remote.rev, data: stripPhotos(merged) });
+    // Кто-то успел записать между нашими двумя обращениями — сводим ещё раз
+    if (out.conflict) {
+      const again = keepPhotos(mergeState(merged, out.data));
+      out = await api('/api/sync', { op: 'push', rev: out.rev, data: stripPhotos(again) });
+      applyState(again);
+    } else {
+      applyState(merged);
+    }
+
+    store(SYNC_KEY, { ...meta, rev: out.rev || 0, at: Date.now() });
+    renderDay();
+    loadProfileForm();
+    recalc();
+    syncNote('Готово: ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
+  } catch (e) {
+    syncNote(
+      e.status === 501 ? 'Хранилище у бота не подключено — перенос пока недоступен.'
+      : e.status === 401 ? 'Telegram не подтвердил, что это вы. Откройте приложение заново.'
+      : e.status === 413 ? 'Записей накопилось больше, чем помещается в перенос.'
+      : 'Не получилось связаться с ботом — нужен интернет.');
+  }
+  btn.disabled = false;
+  syncBusy = false;
+}
+
+function stripPhotos(s) {
+  const diary = {};
+  for (const k of Object.keys(s.diary || {})) {
+    diary[k] = (s.diary[k] || []).map(e => { const { photo, ...rest } = e; return rest; });
+  }
+  return { ...s, diary };
+}
+
+/* Автоматический перенос. Откладываем: иначе каждое нажатие «+» у стакана воды
+   уходило бы в сеть отдельным запросом. */
+let autoTimer = null;
+function scheduleSync() {
+  // syncBusy — защита от круга: перенос сам пишет в хранилище,
+  // и без этой проверки каждая синхронизация назначала бы следующую.
+  if (syncBusy || !tg?.initData || !syncMeta().auto) return;
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => syncNow(true), 4000);
+}
+
+document.getElementById('sync-now').onclick = () => { syncNow(false); haptic(); };
+document.getElementById('sync-auto').onclick = () => {
+  const meta = syncMeta();
+  meta.auto = !meta.auto;
+  store(SYNC_KEY, meta);
+  document.getElementById('sync-auto').setAttribute('aria-pressed', String(meta.auto));
+  syncNote(meta.auto
+    ? 'Записи будут уходить сами, через несколько секунд после изменения.'
+    : 'Автоматический перенос выключен.');
+  if (meta.auto) syncNow(true);
+  haptic();
+};
+
+/* ==================== НАПОМИНАНИЕ ==================== */
+
+function remNote(msg) { document.getElementById('rem-note').textContent = msg; }
+
+function fillHours() {
+  const sel = document.getElementById('rem-hour');
+  sel.innerHTML = Array.from({ length: 24 }, (_, h) =>
+    `<option value="${h}"${h === 20 ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('');
+}
+
+async function remSet(on) {
+  if (!tg?.initData) return remNote('Напоминания работают только через бота — откройте приложение из Telegram.');
+  try {
+    const body = on
+      ? { op: 'on', hour: +document.getElementById('rem-hour').value,
+          offset: new Date().getTimezoneOffset() }
+      : { op: 'off' };
+    const r = await api('/api/reminder', body);
+    document.getElementById('rem-off').classList.toggle('hidden', !r.on);
+    remNote(r.on
+      ? `Включено: бот напишет в ${String(r.hour).padStart(2, '0')}:00, если за день ничего не записано.`
+      : 'Выключено.');
+  } catch (e) {
+    remNote(e.status === 501
+      ? 'Хранилище у бота не подключено — напоминания пока недоступны.'
+      : 'Не получилось связаться с ботом.');
+  }
+}
+
+document.getElementById('rem-on').onclick = () => { remSet(true); haptic(); };
+document.getElementById('rem-off').onclick = () => { remSet(false); haptic(); };
+
+/* Карточки показываем только внутри Telegram: снаружи ни подписи,
+   ни бота нет, и кнопки вводили бы в заблуждение. */
+async function initCloud() {
+  fillHours();
+  if (!tg?.initData) return;
+  document.getElementById('sync-card').classList.remove('hidden');
+  document.getElementById('rem-card').classList.remove('hidden');
+  document.getElementById('sync-auto').setAttribute('aria-pressed', String(!!syncMeta().auto));
+  try {
+    const r = await api('/api/reminder', { op: 'get' });
+    if (r.on) {
+      document.getElementById('rem-hour').value = String(r.hour);
+      document.getElementById('rem-off').classList.remove('hidden');
+      remNote(`Включено на ${String(r.hour).padStart(2, '0')}:00.`);
+    }
+  } catch (e) { /* бот не отвечает — карточка просто останется без состояния */ }
+  if (syncMeta().auto) syncNow(true);
+}
+
+initCloud();
+
+/* ==================== УСТАНОВКА И РАБОТА БЕЗ ИНТЕРНЕТА ==================== */
+
+/* Служебный скрипт лежит отдельным файлом рядом с этой страницей: браузеры
+   разрешают его только так. Если файл не выложен, регистрация тихо не удастся,
+   и всё останется работать как раньше — поэтому ошибку глотаем намеренно. */
+const secure = location.protocol === 'https:'
+  || ['localhost', '127.0.0.1'].includes(location.hostname);
+if ('serviceWorker' in navigator && secure) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+/* Установку нельзя вызвать когда вздумается: браузер сам решает, что момент
+   подходящий, и один раз присылает событие. Его надо поймать и придержать. */
+let installPrompt = null;
+const inTelegram = !!(tg && tg.initData !== undefined && tg.platform && tg.platform !== 'unknown');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  installPrompt = e;
+  // Внутри Telegram ставить некуда — приложение и так открыто в оболочке
+  if (!inTelegram) document.getElementById('install-card').classList.remove('hidden');
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  document.getElementById('install-btn').classList.add('hidden');
+  document.getElementById('install-note').textContent = 'Готово — значок на домашнем экране.';
+});
+
+document.getElementById('install-btn').onclick = async () => {
+  if (!installPrompt) {
+    document.getElementById('install-note').textContent =
+      'Браузер не предлагает установку. На iPhone это делается вручную: «Поделиться» → «На экран «Домой»».';
+    return;
+  }
+  installPrompt.prompt();
+  const res = await installPrompt.userChoice.catch(() => null);
+  installPrompt = null;
+  if (res && res.outcome !== 'accepted') {
+    document.getElementById('install-note').textContent = 'Хорошо, оставим как есть.';
+  }
 };
 
 // Обработчики вкладок назначены выше через onclick — вешаем отдельный слушатель,
