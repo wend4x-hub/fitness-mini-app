@@ -759,8 +759,6 @@ document.getElementById('send-btn').onclick = () => {
   if (!text) return;
   const status = document.getElementById('send-status');
   status.classList.add('hidden');
-  // При открытии файла напрямую с диска origin равен строке null — ссылку тогда не добавляем
-  const link = location.protocol.indexOf('http') === 0 ? location.origin + location.pathname : '';
 
   /* Внутри Telegram открываем его собственный выбор чата: это единственный способ
      переслать сообщение контакту, не имея бота на сервере. Пустой initData означает,
@@ -768,15 +766,17 @@ document.getElementById('send-btn').onclick = () => {
      не произойдёт, поэтому проверяем заранее, а не по факту ошибки. */
   if (tg && tg.initData && tg.openTelegramLink) {
     try {
-      tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(link)
-        + '&text=' + encodeURIComponent(text));
+      /* url оставляем пустым намеренно: Telegram склеивает url и text в одно
+         сообщение, причём адрес идёт первым — непустой url приклеил бы ссылку
+         в начало расчёта */
+      tg.openTelegramLink('https://t.me/share/url?url=&text=' + encodeURIComponent(text));
       return;
     } catch (e) { /* ниже запасные варианты */ }
   }
 
   // Вне Telegram: системное «Поделиться», а если и его нет — копирование
   if (navigator.share) {
-    navigator.share({ text: link ? text + '\n\n' + link : text }).catch(() => {});
+    navigator.share({ text }).catch(() => {});
     return;
   }
   const done = ok => {
@@ -786,8 +786,7 @@ document.getElementById('send-btn').onclick = () => {
     status.classList.remove('hidden');
     status.classList.toggle('ok', ok);
   };
-  const payload = link ? text + '\n\n' + link : text;
-  if (navigator.clipboard) navigator.clipboard.writeText(payload).then(() => done(true), () => done(false));
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
   else done(false);
 };
 
