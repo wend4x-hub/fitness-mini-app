@@ -531,7 +531,7 @@
     <div id="p-stats-body"></div>
   </div>
 
-  <button class="cta ghost hidden" id="send-btn">Отправить расчёт тренеру</button>
+  <button class="cta ghost hidden" id="send-btn">Поделиться расчётом</button>
   <div id="send-status" class="warn hidden"></div>
 
   <p class="note">Расчёт по формуле Миффлина–Сан Жеора. Это ориентир, а не медицинское назначение.
@@ -734,17 +734,61 @@ function recalc() {
   renderDay();
 }
 
-// Отправка данных в бота — бот получит их в message.web_app_data
-document.getElementById('send-btn').onclick = () => {
-  if (!lastResult) return;
-  const status = document.getElementById('send-status');
-  try {
-    if (!tg || !tg.initData) throw new Error('not in telegram');
-    tg.sendData(JSON.stringify(lastResult));
-  } catch (e) {
-    status.textContent = 'Отправка данных работает только когда приложение открыто внутри Telegram, кнопкой из клавиатуры бота.';
-    status.classList.remove('hidden');
+/* Текст расчёта для пересылки. Отправляем именно текст, а не картинку:
+   его можно прочитать в уведомлении, переслать дальше и скопировать цифры. */
+function shareText() {
+  const p = profile, r = lastResult;
+  if (!r) return '';
+  const lines = [
+    'Мой расчёт питания',
+    '',
+    `Норма: ${r.kcal} ккал в день`,
+    `Белки ${r.prot} г · Жиры ${r.fat} г · Углеводы ${r.carb} г`,
+    `Метаболизм покоя ${r.bmr}, расход с активностью ${r.tdee}`
+  ];
+  if (p.weight && p.target) {
+    lines.push('', `Вес ${n1(p.weight)} кг, цель ${n1(p.target)} кг`);
+    const pr = project(p, goalFromTarget(p));
+    if (pr && pr.reached && pr.weeks) lines.push(`Ориентировочный срок: ${pr.weeks} нед.`);
   }
+  return lines.join('\n');
+}
+
+document.getElementById('send-btn').onclick = () => {
+  const text = shareText();
+  if (!text) return;
+  const status = document.getElementById('send-status');
+  status.classList.add('hidden');
+  // При открытии файла напрямую с диска origin равен строке null — ссылку тогда не добавляем
+  const link = location.protocol.indexOf('http') === 0 ? location.origin + location.pathname : '';
+
+  /* Внутри Telegram открываем его собственный выбор чата: это единственный способ
+     переслать сообщение контакту, не имея бота на сервере. Пустой initData означает,
+     что мы не в Telegram, — там этот вызов ничего не сделает, и молча ничего
+     не произойдёт, поэтому проверяем заранее, а не по факту ошибки. */
+  if (tg && tg.initData && tg.openTelegramLink) {
+    try {
+      tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(link)
+        + '&text=' + encodeURIComponent(text));
+      return;
+    } catch (e) { /* ниже запасные варианты */ }
+  }
+
+  // Вне Telegram: системное «Поделиться», а если и его нет — копирование
+  if (navigator.share) {
+    navigator.share({ text: link ? text + '\n\n' + link : text }).catch(() => {});
+    return;
+  }
+  const done = ok => {
+    status.textContent = ok
+      ? 'Расчёт скопирован — вставьте в любой чат.'
+      : 'Скопировать не получилось. Откройте приложение в Telegram, там появится выбор контакта.';
+    status.classList.remove('hidden');
+    status.classList.toggle('ok', ok);
+  };
+  const payload = link ? text + '\n\n' + link : text;
+  if (navigator.clipboard) navigator.clipboard.writeText(payload).then(() => done(true), () => done(false));
+  else done(false);
 };
 
 /* ======================= ДНЕВНИК ПИТАНИЯ ======================= */
